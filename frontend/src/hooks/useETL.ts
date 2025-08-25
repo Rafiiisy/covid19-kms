@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { etlAPI, ETLResult, PipelineStatus, HealthStatus } from '../services/api';
 
 export interface ETLState {
@@ -8,6 +8,14 @@ export interface ETLState {
   healthStatus: HealthStatus | null;
   error: string | null;
   lastUpdated: string;
+  // Database data state
+  databaseData: {
+    youtube: any[] | null;
+    googleNews: any[] | null;
+    instagram: any[] | null;
+    indonesiaNews: any[] | null;
+    summary: any | null;
+  } | null;
 }
 
 export const useETL = () => {
@@ -18,6 +26,7 @@ export const useETL = () => {
     healthStatus: null,
     error: null,
     lastUpdated: 'Never',
+    databaseData: null,
   });
 
   // Run the complete ETL pipeline
@@ -75,23 +84,79 @@ export const useETL = () => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // Fetch all database data
+  const fetchAllDatabaseData = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching database data...');
+      
+      // Fetch data from all sources concurrently
+      const [youtubeData, googleNewsData, instagramData, indonesiaNewsData, summaryData] = await Promise.all([
+        etlAPI.getYouTubeData(),
+        etlAPI.getGoogleNewsData(),
+        etlAPI.getInstagramData(),
+        etlAPI.getIndonesiaNewsData(),
+        etlAPI.getDataSummary(),
+      ]);
+
+      const databaseData = {
+        youtube: youtubeData.data || [],
+        googleNews: googleNewsData.data || [],
+        instagram: instagramData.data || [],
+        indonesiaNews: indonesiaNewsData.data || [],
+        summary: summaryData.summary || {},
+      };
+
+      setState(prev => ({ ...prev, databaseData }));
+      console.log('✅ Database data fetched successfully:', databaseData);
+      
+      return databaseData;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch database data';
+      console.error('❌ Error fetching database data:', error);
+      setState(prev => ({ ...prev, error: errorMessage }));
+      throw error;
+    }
+  }, []);
+
+  // Fetch all database data on component mount
+  useEffect(() => {
+    fetchAllDatabaseData();
+  }, [fetchAllDatabaseData]);
+
   // Get metrics for dashboard display
   const getMetrics = useCallback(() => {
-    if (!state.lastResult) return null;
+    // Use database data if available, fallback to ETL result
+    if (state.databaseData?.summary) {
+      const { summary } = state.databaseData;
+      return {
+        totalRecords: summary.total_records || 0,
+        youtubeVideos: state.databaseData.youtube?.length || 0,
+        newsArticles: (state.databaseData.googleNews?.length || 0) + (state.databaseData.indonesiaNews?.length || 0),
+        extractionSources: 4, // Fixed number of sources
+        averageRelevance: summary.average_relevance || 0,
+        pipelineStatus: state.lastResult?.status || 'unknown',
+        duration: state.lastResult?.pipeline_duration || 'N/A',
+        timestamp: summary.latest_update || 'Never',
+      };
+    }
 
-    const { extraction, transformation, loading, summary } = state.lastResult;
-    
-    return {
-      totalRecords: loading?.records_count || 0,
-      youtubeVideos: transformation?.YouTube?.length || 0,
-      newsArticles: transformation?.News?.length || 0,
-      extractionSources: extraction?.sources ? Object.keys(extraction.sources).length : 0,
-      averageRelevance: transformation?.Summary?.AverageRelevance || 0,
-      pipelineStatus: state.lastResult.status,
-      duration: state.lastResult.pipeline_duration,
-      timestamp: state.lastResult.timestamp,
-    };
-  }, [state.lastResult]);
+    // Fallback to ETL result data
+    if (state.lastResult) {
+      const { extraction, transformation, loading, summary } = state.lastResult;
+      return {
+        totalRecords: loading?.records_count || 0,
+        youtubeVideos: transformation?.YouTube?.length || 0,
+        newsArticles: transformation?.News?.length || 0,
+        extractionSources: extraction?.sources ? Object.keys(extraction.sources).length : 0,
+        averageRelevance: transformation?.Summary?.AverageRelevance || 0,
+        pipelineStatus: state.lastResult.status,
+        duration: state.lastResult.pipeline_duration,
+        timestamp: state.lastResult.timestamp,
+      };
+    }
+
+    return null;
+  }, [state.databaseData, state.lastResult]);
 
   return {
     ...state,
@@ -100,5 +165,7 @@ export const useETL = () => {
     checkHealth,
     clearError,
     getMetrics,
+    fetchAllDatabaseData,
   };
 };
+

@@ -14,10 +14,33 @@ This system is designed for big data research on COVID-19, providing:
 
 The system integrates data from the following RapidAPI sources:
 
+### Primary Data Sources
 1. **YouTube API** - COVID-19 related video content and statistics
-2. **Google News** - Latest COVID-19 news articles and updates
-3. **COVID-Related-Indonesias-News-Article** - Indonesia-specific COVID-19 news
-4. **Indonesia News** - General Indonesian news with COVID-19 filtering
+   - **Endpoint**: YouTube Data API v3 via RapidAPI
+   - **Data**: Video metadata, views, duration, comments, likes
+   - **Query**: COVID-19 related hashtags and keywords
+
+2. **Google News API** - Latest COVID-19 news articles and updates
+   - **Endpoint**: Google News Search via RapidAPI
+   - **Data**: Article headlines, content, publication dates, sources
+   - **Query**: COVID-19 news from global sources
+
+3. **Instagram API** - COVID-19 related social media posts
+   - **Endpoint**: Instagram Hashtag Media via RapidAPI
+   - **Data**: Post captions, engagement metrics, hashtags
+   - **Query**: COVID-19 related hashtags and content
+
+4. **Indonesia News API** - Indonesia-specific COVID-19 news
+   - **Endpoint**: Indonesian News Sources via RapidAPI
+   - **Data**: News from CNN Indonesia, Detik, Kompas, Tempo
+   - **Query**: COVID-19 news from Indonesian media outlets
+
+### Data Processing
+- **Real-time extraction** from all sources via RapidAPI
+- **Automatic data transformation** and cleaning
+- **Sentiment analysis** for news and social media content
+- **Relevance scoring** based on COVID-19 keywords
+- **Metadata enrichment** with source-specific information
 
 ## 🏗️ System Architecture
 
@@ -121,10 +144,10 @@ Before setting up the project, ensure you have:
 2. **Node.js 18+** and npm installed
 3. **Google Cloud Platform Account** with billing enabled
 4. **RapidAPI Account** with access to required APIs:
-   - YouTube API
-   - Google News API
-   - COVID-Related-Indonesias-News-Article API
-   - Indonesia News API
+   - **YouTube Data API v3** - For video content and statistics
+   - **Google News Search API** - For global news articles
+   - **Instagram Hashtag Media API** - For social media posts
+   - **Indonesia News API** - For Indonesian media sources
 
 ## 🔧 Installation & Setup
 
@@ -198,26 +221,33 @@ npm run dev
 
 ### API Endpoints
 - `GET /api/health` - Health check
-- `POST /api/etl/refresh` - Trigger ETL process
-- `GET /api/data/youtube` - YouTube data
-- `GET /api/data/news` - News data
-- `GET /api/analytics/summary` - Analytics summary
-- `WS /api/ws` - WebSocket for real-time updates
+- `POST /api/etl/run` - Trigger ETL pipeline
+- `GET /api/etl/status` - Get pipeline status
+- `GET /api/etl/data/youtube` - YouTube data with metadata
+- `GET /api/etl/data/google-news` - Google News data
+- `GET /api/etl/data/instagram` - Instagram data with engagement metrics
+- `GET /api/etl/data/indonesia-news` - Indonesia News data
+- `GET /api/etl/data/summary` - Overall data summary
+- `GET /api/etl/data/source` - Data by source
+- `GET /api/etl/data/stats` - Data statistics
 
 ## 📊 Dashboard Features
 
 ### Data Visualization
-- **COVID-19 Cases Timeline** - Historical case data
-- **News Sentiment Analysis** - Sentiment trends over time
-- **Geographic Distribution** - Indonesia map with COVID data
-- **YouTube Content Analysis** - Video statistics and trends
-- **Real-time Updates** - Live data refresh capabilities
+- **Multi-Source Data Dashboard** - Unified view of all data sources
+- **Source Distribution Charts** - Pie charts showing data from YouTube, Google News, Instagram, Indonesia News
+- **Pipeline Performance Metrics** - ETL pipeline status and execution times
+- **Content Metadata Display** - Rich metadata for videos, posts, and articles
+- **Real-time Data Refresh** - On-demand ETL pipeline execution
+- **Interactive Records Popup** - Detailed view of all processed data with tabbed interface
 
 ### Analytics
-- **Trend Analysis** - COVID-19 progression patterns
-- **Correlation Studies** - News sentiment vs. case numbers
-- **Geographic Hotspots** - Regional COVID-19 impact
-- **Content Performance** - YouTube video engagement metrics
+- **Data Source Analytics** - Comprehensive analysis across all sources
+- **Content Performance Metrics** - Engagement data from YouTube and Instagram
+- **News Sentiment Analysis** - Sentiment scoring for articles and posts
+- **Relevance Scoring** - AI-powered relevance assessment for COVID-19 content
+- **Source Comparison** - Cross-platform data analysis and insights
+- **Real-time Metrics** - Live dashboard with current data counts and status
 
 ## 🔒 Security
 

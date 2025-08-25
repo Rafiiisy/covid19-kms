@@ -1,0 +1,61 @@
+# =============================================================================
+# COVID-19 KMS Database Docker Compose
+# =============================================================================
+
+
+
+services:
+  postgres:
+    build: .
+    container_name: covid19-kms-db
+    environment:
+      POSTGRES_DB: covid19_kms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./logs:/var/log/postgresql
+    networks:
+      - covid19-kms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d covid19_kms"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: covid19-kms-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@covid19kms.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - covid19-kms-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - admin  # Use --profile admin to start pgAdmin
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  covid19-kms-network:
+    driver: bridge
+    name: covid19-kms-network

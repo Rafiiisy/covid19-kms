@@ -35,7 +35,7 @@ func TestNewETLOrchestrator(t *testing.T) {
 
 func TestDataTransformerCleanText(t *testing.T) {
 	transformer := NewDataTransformer()
-	
+
 	// Test clean text functionality
 	cleanText := transformer.cleanText("  Hello   World!  ")
 	expected := "Hello World!"
@@ -46,13 +46,13 @@ func TestDataTransformerCleanText(t *testing.T) {
 
 func TestDataTransformerCalculateCovidRelevance(t *testing.T) {
 	transformer := NewDataTransformer()
-	
+
 	// Test COVID relevance calculation
 	score := transformer.calculateCovidRelevance("covid vaccine indonesia")
 	if score <= 0 {
 		t.Error("COVID relevance score should be greater than 0 for COVID-related text")
 	}
-	
+
 	// Test non-COVID text
 	score = transformer.calculateCovidRelevance("cooking recipe food")
 	if score != 0 {
@@ -62,13 +62,13 @@ func TestDataTransformerCalculateCovidRelevance(t *testing.T) {
 
 func TestDataTransformerDetectLanguage(t *testing.T) {
 	transformer := NewDataTransformer()
-	
+
 	// Test Indonesian detection
 	lang := transformer.detectLanguage("yang dan atau dengan untuk dari ke di pada")
 	if lang != "id" {
 		t.Errorf("Language detection failed for Indonesian: expected 'id', got '%s'", lang)
 	}
-	
+
 	// Test English detection
 	lang = transformer.detectLanguage("the and or with for from to in on at")
 	if lang != "en" {
@@ -78,14 +78,14 @@ func TestDataTransformerDetectLanguage(t *testing.T) {
 
 func TestDataTransformerParseDateTime(t *testing.T) {
 	transformer := NewDataTransformer()
-	
+
 	// Test RFC3339 format
 	dateStr := "2023-12-25T10:30:00Z"
 	parsed := transformer.parseDateTime(dateStr)
 	if parsed == "" {
 		t.Error("DateTime parsing failed for RFC3339 format")
 	}
-	
+
 	// Test invalid format
 	invalidDate := "invalid-date"
 	parsed = transformer.parseDateTime(invalidDate)
@@ -96,7 +96,7 @@ func TestDataTransformerParseDateTime(t *testing.T) {
 
 func TestDataTransformerCreateSummary(t *testing.T) {
 	transformer := NewDataTransformer()
-	
+
 	// Create test data
 	testVideos := []TransformedVideo{
 		{
@@ -114,7 +114,7 @@ func TestDataTransformerCreateSummary(t *testing.T) {
 			WordCount:           150,
 		},
 	}
-	
+
 	testArticles := []TransformedArticle{
 		{
 			ID:                  "article1",
@@ -124,17 +124,17 @@ func TestDataTransformerCreateSummary(t *testing.T) {
 			WordCount:           200,
 		},
 	}
-	
+
 	summary := transformer.createSummary(testVideos, testArticles)
-	
+
 	if summary.TotalVideos != 2 {
 		t.Errorf("Expected 2 videos, got %d", summary.TotalVideos)
 	}
-	
+
 	if summary.TotalArticles != 1 {
 		t.Errorf("Expected 1 article, got %d", summary.TotalArticles)
 	}
-	
+
 	if summary.AverageRelevance <= 0 {
 		t.Error("Average relevance should be greater than 0")
 	}
@@ -142,7 +142,7 @@ func TestDataTransformerCreateSummary(t *testing.T) {
 
 func TestDataLoaderSaveLocally(t *testing.T) {
 	loader := NewDataLoader()
-	
+
 	// Create test data
 	testData := &TransformedData{
 		YouTube: []TransformedVideo{
@@ -158,13 +158,13 @@ func TestDataLoaderSaveLocally(t *testing.T) {
 			},
 		},
 	}
-	
-	result := loader.saveLocally(testData)
-	
+
+	result := loader.LoadData(testData)
+
 	if !result.Success {
 		t.Error("Save locally should succeed")
 	}
-	
+
 	if result.RecordsCount != 2 {
 		t.Errorf("Expected 2 records, got %d", result.RecordsCount)
 	}
@@ -172,16 +172,16 @@ func TestDataLoaderSaveLocally(t *testing.T) {
 
 func TestETLOrchestratorRunPipeline(t *testing.T) {
 	orchestrator := NewETLOrchestrator()
-	
+
 	// Test that the orchestrator can be created and has the required components
 	if orchestrator.extractor == nil {
 		t.Error("Orchestrator should have an extractor")
 	}
-	
+
 	if orchestrator.transformer == nil {
 		t.Error("Orchestrator should have a transformer")
 	}
-	
+
 	if orchestrator.loader == nil {
 		t.Error("Orchestrator should have a loader")
 	}
@@ -193,15 +193,15 @@ func TestExtractedDataStructure(t *testing.T) {
 		Query:     "covid19",
 		Sources:   make(map[string]interface{}),
 	}
-	
+
 	if data.Timestamp == "" {
 		t.Error("Timestamp should not be empty")
 	}
-	
+
 	if data.Query != "covid19" {
 		t.Error("Query should be 'covid19'")
 	}
-	
+
 	if data.Sources == nil {
 		t.Error("Sources should be initialized")
 	}
@@ -213,15 +213,15 @@ func TestTransformedDataStructure(t *testing.T) {
 		YouTube:       []TransformedVideo{},
 		News:          []TransformedArticle{},
 	}
-	
+
 	if data.TransformedAt == "" {
 		t.Error("TransformedAt should not be empty")
 	}
-	
+
 	if data.YouTube == nil {
 		t.Error("YouTube should be initialized")
 	}
-	
+
 	if data.News == nil {
 		t.Error("News should be initialized")
 	}

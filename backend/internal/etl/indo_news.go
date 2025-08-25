@@ -17,14 +17,15 @@ type IndonesiaNewsAPI struct {
 	Client *http.Client
 }
 
-// IndonesiaNewsResponse represents the API response structure
+// IndonesiaNewsResponse represents the actual API response structure from RapidAPI
 type IndonesiaNewsResponse struct {
-	Status  string      `json:"status"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Source  string      `json:"source,omitempty"`
-	Query   string      `json:"query,omitempty"`
-	Params  interface{} `json:"params,omitempty"`
+	Items    []interface{}          `json:"items,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Status   string                 `json:"status,omitempty"`
+	Error    string                 `json:"error,omitempty"`
+	Source   string                 `json:"source,omitempty"`
+	Query    string                 `json:"query,omitempty"`
+	Params   interface{}            `json:"params,omitempty"`
 }
 
 // IndonesiaNewsData represents the extracted Indonesia news data
@@ -55,24 +56,22 @@ func (in *IndonesiaNewsAPI) SearchNews(source, query string, params map[string]i
 
 	// Build endpoint based on source
 	switch source {
-	case "tempo":
-		endpoint = fmt.Sprintf("/search/tempo?query=%s", url.QueryEscape(query))
-	case "kompas":
-		page := getIntParam(params, "page", 1)
-		limit := getIntParam(params, "limit", 10)
-		endpoint = fmt.Sprintf("/search/kompas?command=%s&page=%d&limit=%d", url.QueryEscape(query), page, limit)
-	case "detik":
-		limit := getIntParam(params, "limit", 10)
-		page := getIntParam(params, "page", 1)
-		endpoint = fmt.Sprintf("/search/detik?keyword=%s&limit=%d&page=%d", url.QueryEscape(query), limit, page)
 	case "cnn":
 		page := getIntParam(params, "page", 1)
 		limit := getIntParam(params, "limit", 100)
 		endpoint = fmt.Sprintf("/search/cnn?query=%s&page=%d&limit=%d", url.QueryEscape(query), page, limit)
+	case "detik":
+		limit := getIntParam(params, "limit", 10)
+		page := getIntParam(params, "page", 1)
+		endpoint = fmt.Sprintf("/search/detik?keyword=%s&limit=%d&page=%d", url.QueryEscape(query), limit, page)
+	case "kompas":
+		page := getIntParam(params, "page", 1)
+		limit := getIntParam(params, "limit", 10)
+		endpoint = fmt.Sprintf("/search/kompas?command=%s&page=%d&limit=%d", url.QueryEscape(query), page, limit)
 	default:
 		return &IndonesiaNewsResponse{
 			Status: "error",
-			Error:  fmt.Sprintf("Unsupported source: %s", source),
+			Error:  fmt.Sprintf("Unsupported source: %s. Supported sources: cnn, detik, kompas", source),
 			Source: source,
 			Query:  query,
 		}, nil
@@ -95,26 +94,79 @@ func (in *IndonesiaNewsAPI) SearchNews(source, query string, params map[string]i
 	}
 	defer resp.Body.Close()
 
-	// Parse response
-	var result IndonesiaNewsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	// Check HTTP status first
+	if resp.StatusCode != http.StatusOK {
+		return &IndonesiaNewsResponse{
+			Status: "error",
+			Error:  fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status),
+			Source: source,
+			Query:  query,
+		}, nil
+	}
+
+	// Parse response into the actual API structure
+	var apiResponse map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Set additional fields
-	result.Source = source
-	result.Query = query
-	result.Params = params
+	// Create our response structure
+	result := &IndonesiaNewsResponse{
+		Status: "success",
+		Source: source,
+		Query:  query,
+		Params: params,
+	}
 
-	// Check HTTP status
-	if resp.StatusCode != http.StatusOK {
-		result.Status = "error"
-		if result.Error == "" {
-			result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	// Extract items based on source-specific response structure
+	switch source {
+	case "cnn":
+		// CNN uses "items" field directly
+		if items, ok := apiResponse["items"]; ok {
+			if itemsArray, ok := items.([]interface{}); ok {
+				result.Items = itemsArray
+			}
+		}
+	case "detik":
+		// DETIK uses "item" field (singular)
+		if items, ok := apiResponse["item"]; ok {
+			if itemsArray, ok := items.([]interface{}); ok {
+				result.Items = itemsArray
+			}
+		}
+	case "kompas":
+		// KOMPAS uses nested structure: xml.pencarian.item
+		if xmlData, ok := apiResponse["xml"].(map[string]interface{}); ok {
+			if pencarian, ok := xmlData["pencarian"].(map[string]interface{}); ok {
+				if items, ok := pencarian["item"]; ok {
+					if itemsArray, ok := items.([]interface{}); ok {
+						result.Items = itemsArray
+					}
+				}
+			}
 		}
 	}
 
-	return &result, nil
+	// Extract metadata if it exists
+	if metadata, ok := apiResponse["metadata"]; ok {
+		if metadataMap, ok := metadata.(map[string]interface{}); ok {
+			result.Metadata = metadataMap
+		}
+	}
+
+	// If no items found, check if there's an error
+	if len(result.Items) == 0 {
+		if errorMsg, ok := apiResponse["error"]; ok {
+			result.Status = "error"
+			result.Error = fmt.Sprintf("%v", errorMsg)
+		} else {
+			// No items but no error - this might be normal for some sources
+			result.Status = "success"
+			result.Error = "" // Clear any error message
+		}
+	}
+
+	return result, nil
 }
 
 // GetNewsDetail retrieves detailed news article
@@ -123,18 +175,16 @@ func (in *IndonesiaNewsAPI) GetNewsDetail(source, identifier string) (*Indonesia
 
 	// Build endpoint based on source
 	switch source {
-	case "tempo":
-		endpoint = fmt.Sprintf("/detail/tempo/%s", url.QueryEscape(identifier))
-	case "kompas":
-		endpoint = fmt.Sprintf("/detail/kompas?guid=%s", url.QueryEscape(identifier))
-	case "detik":
-		endpoint = fmt.Sprintf("/detail/detik?url=%s", url.QueryEscape(identifier))
 	case "cnn":
 		endpoint = fmt.Sprintf("/detail/cnn?url=%s", url.QueryEscape(identifier))
+	case "detik":
+		endpoint = fmt.Sprintf("/detail/detik?url=%s", url.QueryEscape(identifier))
+	case "kompas":
+		endpoint = fmt.Sprintf("/detail/kompas?guid=%s", url.QueryEscape(identifier))
 	default:
 		return &IndonesiaNewsResponse{
 			Status: "error",
-			Error:  fmt.Sprintf("Unsupported source: %s", source),
+			Error:  fmt.Sprintf("Unsupported source: %s. Supported sources: cnn, detik, kompas", source),
 			Source: source,
 		}, nil
 	}
@@ -156,24 +206,73 @@ func (in *IndonesiaNewsAPI) GetNewsDetail(source, identifier string) (*Indonesia
 	}
 	defer resp.Body.Close()
 
+	// Check HTTP status first
+	if resp.StatusCode != http.StatusOK {
+		return &IndonesiaNewsResponse{
+			Status: "error",
+			Error:  fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status),
+			Source: source,
+		}, nil
+	}
+
 	// Parse response
-	var result IndonesiaNewsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	var apiResponse map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Set additional fields
-	result.Source = source
+	// Create our response structure
+	result := &IndonesiaNewsResponse{
+		Status: "success",
+		Source: source,
+	}
 
-	// Check HTTP status
-	if resp.StatusCode != http.StatusOK {
-		result.Status = "error"
-		if result.Error == "" {
-			result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	// Extract items based on source-specific response structure
+	switch source {
+	case "cnn":
+		if items, ok := apiResponse["items"]; ok {
+			if itemsArray, ok := items.([]interface{}); ok {
+				result.Items = itemsArray
+			}
+		}
+	case "detik":
+		if items, ok := apiResponse["item"]; ok {
+			if itemsArray, ok := items.([]interface{}); ok {
+				result.Items = itemsArray
+			}
+		}
+	case "kompas":
+		if xmlData, ok := apiResponse["xml"].(map[string]interface{}); ok {
+			if pencarian, ok := xmlData["pencarian"].(map[string]interface{}); ok {
+				if items, ok := pencarian["item"]; ok {
+					if itemsArray, ok := items.([]interface{}); ok {
+						result.Items = itemsArray
+					}
+				}
+			}
 		}
 	}
 
-	return &result, nil
+	// Extract metadata if it exists
+	if metadata, ok := apiResponse["metadata"]; ok {
+		if metadataMap, ok := metadata.(map[string]interface{}); ok {
+			result.Metadata = metadataMap
+		}
+	}
+
+	// If no items found, check if there's an error
+	if len(result.Items) == 0 {
+		if errorMsg, ok := apiResponse["error"]; ok {
+			result.Status = "error"
+			result.Error = fmt.Sprintf("%v", errorMsg)
+		} else {
+			// No items but no error - this might be normal for some sources
+			result.Status = "success"
+			result.Error = "" // Clear any error message
+		}
+	}
+
+	return result, nil
 }
 
 // getIntParam safely extracts an integer parameter from the params map

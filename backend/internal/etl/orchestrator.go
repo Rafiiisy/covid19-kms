@@ -1,6 +1,7 @@
 package etl
 
 import (
+	"covid19-kms/database"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -20,9 +21,9 @@ type ETLResult struct {
 	Message          string                 `json:"message"`
 	Timestamp        string                 `json:"timestamp"`
 	PipelineDuration string                 `json:"pipeline_duration"`
-	Extraction       *ExtractedData        `json:"extraction,omitempty"`
-	Transformation   *TransformedData      `json:"transformation,omitempty"`
-	Loading          *LoadResult           `json:"loading,omitempty"`
+	Extraction       *ExtractedData         `json:"extraction,omitempty"`
+	Transformation   *TransformedData       `json:"transformation,omitempty"`
+	Loading          *LoadResult            `json:"loading,omitempty"`
 	Summary          map[string]interface{} `json:"summary,omitempty"`
 	Error            string                 `json:"error,omitempty"`
 }
@@ -40,6 +41,17 @@ func NewETLOrchestrator() *ETLOrchestrator {
 func (eo *ETLOrchestrator) RunETLPipeline() *ETLResult {
 	startTime := time.Now()
 	log.Println("🚀 Starting ETL pipeline...")
+
+	// Initialize database connection
+	if err := database.InitDatabase(); err != nil {
+		result := &ETLResult{
+			Status:  "error",
+			Message: "ETL pipeline failed: database initialization failed",
+			Error:   err.Error(),
+		}
+		return result
+	}
+	defer database.CloseDatabase()
 
 	result := &ETLResult{
 		Timestamp: startTime.Format(time.RFC3339),
@@ -99,9 +111,9 @@ func (eo *ETLOrchestrator) RunETLPipeline() *ETLResult {
 // extractData extracts data from all sources
 func (eo *ETLOrchestrator) extractData() (*ExtractedData, error) {
 	log.Println("🔄 Starting data extraction...")
-	
+
 	extractedData := eo.extractor.ExtractAllSources()
-	
+
 	if extractedData == nil {
 		return nil, fmt.Errorf("data extraction returned nil")
 	}
@@ -114,26 +126,36 @@ func (eo *ETLOrchestrator) extractData() (*ExtractedData, error) {
 func (eo *ETLOrchestrator) transformData(extractedData *ExtractedData) (*TransformedData, error) {
 	log.Println("🔄 Starting data transformation...")
 
-	// Extract YouTube and news data for transformation
-	var youtubeData, newsData interface{}
-	
+	// Extract YouTube, news, and Instagram data for transformation
+	var youtubeData, instagramData interface{}
+	var allNewsData []interface{}
+
 	if source, exists := extractedData.Sources["youtube"]; exists {
 		youtubeData = source
 	}
-	
+
+	// Collect all news sources (Indonesia News and Real-Time News)
+	if source, exists := extractedData.Sources["indonesia_news"]; exists {
+		allNewsData = append(allNewsData, source)
+	}
 	if source, exists := extractedData.Sources["google_news"]; exists {
-		newsData = source
+		allNewsData = append(allNewsData, source)
 	}
 
-	transformedData := eo.transformer.TransformData(youtubeData, newsData)
-	
+	// Extract Instagram data
+	if source, exists := extractedData.Sources["instagram"]; exists {
+		instagramData = source
+	}
+
+	transformedData := eo.transformer.TransformData(youtubeData, allNewsData, instagramData)
+
 	if transformedData == nil {
 		return nil, fmt.Errorf("data transformation returned nil")
 	}
 
-	log.Printf("✅ Data transformation completed. Videos: %d, Articles: %d", 
+	log.Printf("✅ Data transformation completed. Videos: %d, Articles: %d",
 		len(transformedData.YouTube), len(transformedData.News))
-	
+
 	return transformedData, nil
 }
 
@@ -167,9 +189,9 @@ func (eo *ETLOrchestrator) createSummary(extractedData *ExtractedData, transform
 			"sources":   len(extractedData.Sources),
 		},
 		"transformation": map[string]interface{}{
-			"timestamp":        transformedData.TransformedAt,
-			"videos_count":     len(transformedData.YouTube),
-			"articles_count":   len(transformedData.News),
+			"timestamp":         transformedData.TransformedAt,
+			"videos_count":      len(transformedData.YouTube),
+			"articles_count":    len(transformedData.News),
 			"average_relevance": transformedData.Summary.AverageRelevance,
 		},
 		"loading": map[string]interface{}{
@@ -192,13 +214,13 @@ func (er *ETLResult) ToJSON() ([]byte, error) {
 // GetPipelineMetrics returns key metrics from the ETL pipeline
 func (er *ETLResult) GetPipelineMetrics() map[string]interface{} {
 	metrics := map[string]interface{}{
-		"status":            er.Status,
-		"duration":          er.PipelineDuration,
-		"timestamp":         er.Timestamp,
-		"extraction_sources": 0,
-		"transformed_videos": 0,
+		"status":               er.Status,
+		"duration":             er.PipelineDuration,
+		"timestamp":            er.Timestamp,
+		"extraction_sources":   0,
+		"transformed_videos":   0,
 		"transformed_articles": 0,
-		"loaded_records":    0,
+		"loaded_records":       0,
 	}
 
 	if er.Extraction != nil {

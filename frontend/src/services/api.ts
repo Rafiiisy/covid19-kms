@@ -97,6 +97,32 @@ export const etlAPI = {
     const response = await apiClient.post('/api/etl/load');
     return response.data;
   },
+
+  // Database data retrieval APIs
+  getYouTubeData: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/youtube');
+    return response.data;
+  },
+
+  getGoogleNewsData: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/google-news');
+    return response.data;
+  },
+
+  getInstagramData: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/instagram');
+    return response.data;
+  },
+
+  getIndonesiaNewsData: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/indonesia-news');
+    return response.data;
+  },
+
+  getDataSummary: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/summary');
+    return response.data;
+  },
 };
 
 export default apiClient;

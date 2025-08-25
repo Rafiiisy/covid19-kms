@@ -1,13 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RefreshCw, Download, BarChart3, TrendingUp, Globe, Video, Database, Activity, Clock } from 'lucide-react';
 import { useETL } from '../hooks/useETL';
 import { DataCharts } from '../components/DataCharts';
 import { StatusIndicator } from '../components/StatusIndicator';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { RecordsPopup } from '../components/RecordsPopup';
 import { exportAsJSON, exportAsCSV } from '../utils/exportUtils';
 
 const Dashboard: React.FC = () => {
+  const [showRecordsPopup, setShowRecordsPopup] = useState(false);
+  
   const {
     isLoading,
     lastResult,
@@ -15,11 +18,13 @@ const Dashboard: React.FC = () => {
     healthStatus,
     error,
     lastUpdated,
+    databaseData,
     runPipeline,
     getStatus,
     checkHealth,
     clearError,
     getMetrics,
+    fetchAllDatabaseData,
   } = useETL();
 
   // Load initial status on component mount
@@ -30,12 +35,23 @@ const Dashboard: React.FC = () => {
 
   const handleRefreshData = async () => {
     try {
+      console.log('🚀 Starting ETL pipeline...');
+      
+      // 1. Run ETL Pipeline
       await runPipeline();
-      // Refresh status after pipeline completion
+      console.log('✅ ETL pipeline completed');
+      
+      // 2. Refresh status after pipeline completion
       await getStatus();
       await checkHealth();
+      
+      // 3. Fetch fresh data from database
+      console.log('📊 Fetching updated database data...');
+      await fetchAllDatabaseData();
+      console.log('✅ Database data updated in UI');
+      
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      console.error('❌ Failed to refresh data:', error);
     }
   };
 
@@ -129,33 +145,14 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6">
-            <div className="flex items-center">
-              <Video className="w-8 h-8 mr-3" />
-              <div>
-                <p className="text-blue-100 text-sm">YouTube Videos</p>
-                <p className="text-2xl font-bold">{metrics?.youtubeVideos || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-6">
-            <div className="flex items-center">
-              <Globe className="w-8 h-8 mr-3" />
-              <div>
-                <p className="text-green-100 text-sm">News Articles</p>
-                <p className="text-2xl font-bold">{metrics?.newsArticles || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 cursor-pointer hover:from-purple-600 hover:to-purple-700 transition-all duration-200" onClick={() => setShowRecordsPopup(true)}>
             <div className="flex items-center">
               <Database className="w-8 h-8 mr-3" />
               <div>
                 <p className="text-purple-100 text-sm">Total Records</p>
                 <p className="text-2xl font-bold">{metrics?.totalRecords || 0}</p>
+                <p className="text-purple-200 text-xs mt-1">Click to view details</p>
               </div>
             </div>
           </div>
@@ -173,44 +170,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Additional Metrics */}
-        {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center">
-                <BarChart3 className="w-8 h-8 mr-3 text-indigo-600" />
-                <div>
-                  <p className="text-gray-600 text-sm">Extraction Sources</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics.extractionSources}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center">
-                <TrendingUp className="w-8 h-8 mr-3 text-green-600" />
-                <div>
-                  <p className="text-gray-600 text-sm">Average Relevance</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {metrics.averageRelevance ? metrics.averageRelevance.toFixed(2) : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center">
-                <Clock className="w-8 h-8 mr-3 text-yellow-600" />
-                <div>
-                  <p className="text-gray-600 text-sm">Processing Time</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {metrics.duration || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Data Visualization */}
         {isLoading ? (
@@ -219,9 +179,18 @@ const Dashboard: React.FC = () => {
             <LoadingSpinner message="Running ETL Pipeline..." size="lg" />
           </div>
         ) : (
-          <DataCharts etlResult={lastResult} />
+          <DataCharts etlResult={lastResult} databaseData={databaseData} />
         )}
       </div>
+
+      {/* Records Popup Modal */}
+      {showRecordsPopup && (
+        <RecordsPopup 
+          isOpen={showRecordsPopup}
+          onClose={() => setShowRecordsPopup(false)}
+          databaseData={databaseData}
+        />
+      )}
     </div>
   );
 };

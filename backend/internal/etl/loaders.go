@@ -3,6 +3,7 @@ package etl
 import (
 	"encoding/json"
 	"log"
+	"strings"
 	"time"
 
 	"covid19-kms/database"
@@ -15,11 +16,11 @@ type DataLoader struct {
 
 // LoadResult represents the result of a data loading operation
 type LoadResult struct {
-	Success      bool      `json:"success"`
-	Message      string    `json:"message"`
-	Timestamp    string    `json:"timestamp"`
-	RecordsCount int       `json:"records_count"`
-	Error        string    `json:"error,omitempty"`
+	Success      bool   `json:"success"`
+	Message      string `json:"message"`
+	Timestamp    string `json:"timestamp"`
+	RecordsCount int    `json:"records_count"`
+	Error        string `json:"error,omitempty"`
 }
 
 // NewDataLoader creates a new DataLoader instance
@@ -65,8 +66,30 @@ func (dl *DataLoader) LoadData(data *TransformedData) *LoadResult {
 			continue
 		}
 
+		// Determine the specific source based on the article source field
+		sourceName := "news" // default
+		if article.Source != "" {
+			switch article.Source {
+			case "CNN", "DETIK", "KOMPAS", "Indonesia News":
+				sourceName = "indonesia_news"
+			case "Real-Time News":
+				sourceName = "google_news" // Store as google_news for backward compatibility
+			case "Instagram":
+				sourceName = "instagram"
+			default:
+				// Check if it contains Instagram-related keywords
+				if strings.Contains(strings.ToLower(article.Source), "instagram") {
+					sourceName = "instagram"
+				} else if strings.Contains(strings.ToLower(article.Source), "indonesia") {
+					sourceName = "indonesia_news"
+				} else {
+					sourceName = "news"
+				}
+			}
+		}
+
 		processedData := &database.ProcessedData{
-			Source:         "news",
+			Source:         sourceName,
 			Title:          article.Title,
 			Content:        article.Content,
 			RelevanceScore: article.CovidRelevanceScore,

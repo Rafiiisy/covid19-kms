@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"covid19-kms/internal/api"
 	"covid19-kms/database"
+	"covid19-kms/internal/api"
 )
 
 func main() {
@@ -22,9 +22,13 @@ func main() {
 	}
 	defer database.CloseDatabase()
 
-	// Create tables if they don't exist
-	if err := database.CreateTables(); err != nil {
-		log.Fatalf("❌ Failed to create database tables: %v", err)
+	// Create tables if database is not skipped
+	if os.Getenv("SKIP_DATABASE") != "true" {
+		if err := database.CreateTables(); err != nil {
+			log.Fatalf("❌ Failed to create database tables: %v", err)
+		}
+	} else {
+		log.Println("⚠️ Database table creation skipped (SKIP_DATABASE=true)")
 	}
 
 	// Create router

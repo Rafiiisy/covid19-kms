@@ -1,0 +1,37 @@
+# =============================================================================
+# Docker ignore file for COVID-19 KMS Database
+# =============================================================================
+
+# Documentation files (keep them out of the container)
+*.md
+README*
+QUICK_START*
+
+# Go files (not needed in database container)
+*.go
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+
+# Development files
+.env*
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git files
+.git/
+.gitignore
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+

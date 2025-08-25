@@ -18,13 +18,17 @@ type InstagramAPI struct {
 
 // InstagramResponse represents the API response structure
 type InstagramResponse struct {
-	Status   string      `json:"status"`
-	Data     interface{} `json:"data,omitempty"`
-	Error    string      `json:"error,omitempty"`
-	Hashtag  string      `json:"hashtag,omitempty"`
-	MaxID    string      `json:"max_id,omitempty"`
-	MediaID  string      `json:"media_id,omitempty"`
-	Amount   int         `json:"amount,omitempty"`
+	Status  string      `json:"status"`
+	Data    interface{} `json:"data,omitempty"` // For backward compatibility
+	Error   string      `json:"error,omitempty"`
+	Hashtag string      `json:"hashtag,omitempty"`
+	MaxID   string      `json:"max_id,omitempty"`
+	MediaID string      `json:"media_id,omitempty"`
+	Amount  int         `json:"amount,omitempty"`
+
+	// Direct API response fields for array structure
+	Posts  []interface{} `json:"posts,omitempty"`  // Posts data from first array element
+	Cursor string        `json:"cursor,omitempty"` // Cursor token from second array element
 }
 
 // InstagramData represents the extracted Instagram data
@@ -75,25 +79,45 @@ func (ig *InstagramAPI) GetHashtagMedia(name, maxID string) (*InstagramResponse,
 	}
 	defer resp.Body.Close()
 
-	// Parse response
-	var result InstagramResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// First, try to decode as array to handle the actual API response structure
+	var rawResponse []interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&rawResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response as array: %w", err)
 	}
 
-	// Set additional fields
-	result.Hashtag = name
-	result.MaxID = maxID
+	// Create result
+	result := &InstagramResponse{
+		Hashtag: name,
+		MaxID:   maxID,
+		Status:  "success",
+	}
 
 	// Check HTTP status
 	if resp.StatusCode != http.StatusOK {
 		result.Status = "error"
-		if result.Error == "" {
-			result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		return result, nil
+	}
+
+	// Handle array response structure
+	if len(rawResponse) >= 1 {
+		// First element contains the posts data
+		if postsData, ok := rawResponse[0].([]interface{}); ok {
+			result.Posts = postsData
+			result.Data = postsData // Keep backward compatibility
+		} else {
+			result.Error = "First array element is not a posts array"
 		}
 	}
 
-	return &result, nil
+	// Second element contains cursor/pagination info
+	if len(rawResponse) >= 2 {
+		if cursorData, ok := rawResponse[1].(string); ok {
+			result.Cursor = cursorData
+		}
+	}
+
+	return result, nil
 }
 
 // GetMediaComments retrieves comments for a specific media post
@@ -120,23 +144,36 @@ func (ig *InstagramAPI) GetMediaComments(mediaID string, amount int) (*Instagram
 	}
 	defer resp.Body.Close()
 
-	// Parse response
-	var result InstagramResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// Parse response - comments might also return array structure
+	var rawResponse []interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&rawResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode comments response: %w", err)
 	}
 
-	// Set additional fields
-	result.MediaID = mediaID
-	result.Amount = amount
+	// Create result
+	result := &InstagramResponse{
+		MediaID: mediaID,
+		Amount:  amount,
+		Status:  "success",
+	}
 
 	// Check HTTP status
 	if resp.StatusCode != http.StatusOK {
 		result.Status = "error"
-		if result.Error == "" {
-			result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		result.Error = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		return result, nil
+	}
+
+	// Handle array response structure for comments
+	if len(rawResponse) >= 1 {
+		// First element contains the comments data
+		if commentsData, ok := rawResponse[0].([]interface{}); ok {
+			result.Posts = commentsData // Reuse Posts field for comments
+			result.Data = commentsData  // Keep backward compatibility
+		} else {
+			result.Error = "First array element is not a comments array"
 		}
 	}
 
-	return &result, nil
+	return result, nil
 }

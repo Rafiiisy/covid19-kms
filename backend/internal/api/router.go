@@ -34,6 +34,15 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("/api/etl/data", r.corsMiddleware(r.dataHandler.GetLatestData))
 	mux.HandleFunc("/api/etl/data/source", r.corsMiddleware(r.dataHandler.GetDataBySource))
 	mux.HandleFunc("/api/etl/data/stats", r.corsMiddleware(r.dataHandler.GetDataStats))
+
+	// New database query endpoints for individual sources
+	mux.HandleFunc("/api/etl/data/youtube", r.corsMiddleware(r.dataHandler.GetYouTubeData))
+	mux.HandleFunc("/api/etl/data/google-news", r.corsMiddleware(r.dataHandler.GetGoogleNewsData))
+	mux.HandleFunc("/api/etl/data/instagram", r.corsMiddleware(r.dataHandler.GetInstagramData))
+	mux.HandleFunc("/api/etl/data/indonesia-news", r.corsMiddleware(r.dataHandler.GetIndonesiaNewsData))
+	mux.HandleFunc("/api/etl/data/summary", r.corsMiddleware(r.dataHandler.GetDataSummary))
+
+	mux.HandleFunc("/health", r.corsMiddleware(r.etlHandler.HealthCheck))
 	mux.HandleFunc("/api/health", r.corsMiddleware(r.etlHandler.HealthCheck))
 
 	return mux
@@ -47,29 +56,25 @@ func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	// Additional CORS headers for extra security
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 
 	response := map[string]interface{}{
-		"service":       "COVID-19 Knowledge Management System",
-		"version":       "1.0.0",
-		"description":   "ETL Pipeline API for COVID-19 data processing",
+		"service":     "COVID-19 Knowledge Management System",
+		"version":     "1.0.0",
+		"description": "ETL Pipeline API for COVID-19 data processing",
 		"endpoints": map[string]interface{}{
-			"root":        "/",
-			"api_info":    "/api",
+			"root":     "/",
+			"api_info": "/api",
 			"etl": map[string]string{
-				"run_pipeline": "/api/etl/run",
-				"status":       "/api/etl/status",
-				"extract":      "/api/etl/extract",
-				"transform":    "/api/etl/transform",
-				"load":         "/api/etl/load",
-				"data":         "/api/etl/data",
+				"run_pipeline":   "/api/etl/run",
+				"status":         "/api/etl/status",
+				"extract":        "/api/etl/extract",
+				"transform":      "/api/etl/transform",
+				"load":           "/api/etl/load",
+				"data":           "/api/etl/data",
 				"data_by_source": "/api/etl/data/source?source=youtube",
-				"data_stats":   "/api/etl/data/stats",
+				"data_stats":     "/api/etl/data/stats",
 			},
-			"health":      "/api/health",
+			"health": "/api/health",
 		},
 		"documentation": "API documentation available at /api",
 	}
@@ -93,16 +98,12 @@ func (r *Router) handleAPIInfo(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	// Additional CORS headers for extra security
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 
 	response := map[string]interface{}{
-		"api_name":      "ETL Pipeline API",
-		"version":       "1.0.0",
-		"description":   "RESTful API for COVID-19 ETL pipeline operations",
-		"base_url":      "/api",
+		"api_name":    "ETL Pipeline API",
+		"version":     "1.0.0",
+		"description": "RESTful API for COVID-19 ETL pipeline operations",
+		"base_url":    "/api",
 		"endpoints": map[string]interface{}{
 			"etl": map[string]interface{}{
 				"run_pipeline": map[string]interface{}{

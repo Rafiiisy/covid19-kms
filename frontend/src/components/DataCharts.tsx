@@ -7,10 +7,18 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 interface DataChartsProps {
   etlResult: ETLResult | null;
+  databaseData?: {
+    youtube: any[] | null;
+    googleNews: any[] | null;
+    instagram: any[] | null;
+    indonesiaNews: any[] | null;
+    summary: any | null;
+  } | null;
 }
 
-export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
-  if (!etlResult) {
+export const DataCharts: React.FC<DataChartsProps> = ({ etlResult, databaseData }) => {
+  // Use database data if available, otherwise show ETL result message
+  if (!etlResult && !databaseData) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Visualization</h3>
@@ -21,22 +29,34 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
     );
   }
 
+  // Use database data for charts if available
+  const useDatabaseData = databaseData && databaseData.summary;
+
   // Prepare data for pie chart (data source distribution)
   const sourceData = {
-    labels: ['YouTube Videos', 'News Articles'],
+    labels: ['YouTube Videos', 'Google News', 'Instagram', 'Indonesia News'],
     datasets: [
       {
-        data: [
-          etlResult.transformation?.YouTube?.length || 0,
-          etlResult.transformation?.News?.length || 0,
+        data: useDatabaseData ? [
+          databaseData.youtube?.length || 0,
+          databaseData.googleNews?.length || 0,
+          databaseData.instagram?.length || 0,
+          databaseData.indonesiaNews?.length || 0,
+        ] : [
+          etlResult?.transformation?.YouTube?.length || 0,
+          etlResult?.transformation?.News?.length || 0,
         ],
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',
           'rgba(54, 162, 235, 0.8)',
+          'rgba(153, 102, 255, 0.8)',
+          'rgba(255, 206, 86, 0.8)',
         ],
         borderColor: [
           'rgba(255, 99, 132, 1)',
           'rgba(54, 162, 235, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 206, 86, 1)',
         ],
         borderWidth: 1,
       },
@@ -45,23 +65,30 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
 
   // Prepare data for bar chart (pipeline stages performance)
   const pipelineData = {
-    labels: ['Extraction', 'Transformation', 'Loading'],
+    labels: ['YouTube', 'Google News', 'Instagram', 'Indonesia News'],
     datasets: [
       {
         label: 'Records Processed',
-        data: [
-          etlResult.extraction?.sources ? Object.keys(etlResult.extraction.sources).length : 0,
-          (etlResult.transformation?.YouTube?.length || 0) + (etlResult.transformation?.News?.length || 0),
-          etlResult.loading?.records_count || 0,
+        data: useDatabaseData ? [
+          databaseData.youtube?.length || 0,
+          databaseData.googleNews?.length || 0,
+          databaseData.instagram?.length || 0,
+          databaseData.indonesiaNews?.length || 0,
+        ] : [
+          etlResult?.extraction?.sources ? Object.keys(etlResult.extraction.sources).length : 0,
+          (etlResult?.transformation?.YouTube?.length || 0) + (etlResult?.transformation?.News?.length || 0),
+          etlResult?.loading?.records_count || 0,
         ],
         backgroundColor: [
-          'rgba(255, 206, 86, 0.8)',
-          'rgba(75, 192, 192, 0.8)',
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(54, 162, 235, 0.8)',
           'rgba(153, 102, 255, 0.8)',
         ],
         borderColor: [
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
+          'rgba(255, 99, 132, 1)',
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
           'rgba(153, 102, 255, 1)',
         ],
         borderWidth: 1,
@@ -85,7 +112,7 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
       ...chartOptions.plugins,
       title: {
         display: true,
-        text: 'Pipeline Stages Performance',
+        text: 'Data Source Distribution',
       },
     },
     scales: {
@@ -123,18 +150,18 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
               <div className="flex justify-between">
                 <span className="text-gray-600">Status:</span>
                 <span className={`font-medium ${
-                  etlResult.status === 'success' ? 'text-green-600' : 'text-red-600'
+                  etlResult?.status === 'success' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {etlResult.status}
+                  {etlResult?.status || 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">{etlResult.pipeline_duration}</span>
+                <span className="font-medium">{etlResult?.pipeline_duration || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Timestamp:</span>
-                <span className="font-medium">{new Date(etlResult.timestamp).toLocaleString()}</span>
+                <span className="font-medium">{etlResult?.timestamp ? new Date(etlResult.timestamp).toLocaleString() : 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -144,17 +171,17 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">YouTube Videos:</span>
-                <span className="font-medium">{etlResult.transformation?.YouTube?.length || 0}</span>
+                <span className="font-medium">{etlResult?.transformation?.YouTube?.length || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">News Articles:</span>
-                <span className="font-medium">{etlResult.transformation?.News?.length || 0}</span>
+                <span className="font-medium">{etlResult?.transformation?.News?.length || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Records:</span>
-                <span className="font-medium">{etlResult.loading?.records_count || 0}</span>
+                <span className="font-medium">{etlResult?.loading?.records_count || 0}</span>
               </div>
-              {etlResult.transformation?.Summary?.AverageRelevance && (
+              {etlResult?.transformation?.Summary?.AverageRelevance && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Avg Relevance:</span>
                   <span className="font-medium">
@@ -169,3 +196,4 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult }) => {
     </div>
   );
 };
+

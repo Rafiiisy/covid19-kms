@@ -1,0 +1,41 @@
+# =============================================================================
+# COVID-19 KMS ETL Containers Only
+# =============================================================================
+
+services:
+  # Go Backend API (ETL only)
+  backend:
+    build: .
+    container_name: etl-backend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENV=production
+      - DATABASE_HOST=host.docker.internal
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=covid19_kms
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=password
+      - DATABASE_SSL_MODE=disable
+      - SKIP_DATABASE=false
+      - RAPIDAPI_KEY=a85b1b4ffdmsh1c4c4146542ae98p1d773ejsn35c70b5211d8
+      - LOG_LEVEL=INFO
+      - DEBUG=false
+    ports:
+      - "8000:8000"
+    networks:
+      - covid19-kms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  covid19-kms-network:
+    driver: bridge
+    name: covid19-kms-network
