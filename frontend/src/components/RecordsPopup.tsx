@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ExternalLink, MessageCircle, ThumbsUp, Calendar, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, ExternalLink, MessageCircle, ThumbsUp, Calendar, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface RecordsPopupProps {
   isOpen: boolean;
@@ -15,6 +15,86 @@ interface RecordsPopupProps {
 
 export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, databaseData }) => {
   const [activeTab, setActiveTab] = useState('youtube');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+
+  // Reset to first page when tab changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setCurrentPage(1);
+  };
+
+  // Get current tab data
+  const getCurrentTabData = () => {
+    switch (activeTab) {
+      case 'youtube':
+        return databaseData?.youtube || [];
+      case 'google-news':
+        return databaseData?.googleNews || [];
+      case 'instagram':
+        return databaseData?.instagram || [];
+      case 'indonesia-news':
+        return databaseData?.indonesiaNews || [];
+      default:
+        return [];
+    }
+  };
+
+  // Pagination logic
+  const currentTabData = getCurrentTabData();
+  const totalPages = Math.ceil(currentTabData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageData = currentTabData.slice(startIndex, endIndex);
+
+  // Pagination controls
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
 
   if (!isOpen) return null;
 
@@ -27,14 +107,14 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
 
   const renderYouTubeContent = () => (
     <div className="space-y-0">
-      {databaseData?.youtube?.length ? (
-        databaseData.youtube.map((comment, index) => (
-          <div key={index} className={`p-4 transition-all duration-200 hover:shadow-md ${
+      {currentPageData.length ? (
+        currentPageData.map((comment, index) => (
+          <div key={startIndex + index} className={`p-4 transition-all duration-200 hover:shadow-md ${
             index % 2 === 0 ? 'bg-red-100' : 'bg-gray-200'
-          } ${index < (databaseData.youtube?.length || 0) - 1 ? 'border-b border-gray-300' : ''} ${
+          } ${index < currentPageData.length - 1 ? 'border-b border-gray-300' : ''} ${
             index === 0 ? 'rounded-t-lg' : ''
           } ${
-            index === (databaseData.youtube?.length || 0) - 1 ? 'rounded-b-lg' : ''
+            index === currentPageData.length - 1 ? 'rounded-b-lg' : ''
           }`}>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-16 h-12 bg-red-100 rounded flex items-center justify-center">
@@ -100,14 +180,14 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
 
   const renderGoogleNewsContent = () => (
     <div className="space-y-0">
-      {databaseData?.googleNews?.length ? (
-        databaseData.googleNews.map((article, index) => (
-          <div key={index} className={`p-4 transition-all duration-200 hover:shadow-md ${
+      {currentPageData.length ? (
+        currentPageData.map((article, index) => (
+          <div key={startIndex + index} className={`p-4 transition-all duration-200 hover:shadow-md ${
             index % 2 === 0 ? 'bg-blue-100' : 'bg-gray-200'
-          } ${index < (databaseData.googleNews?.length || 0) - 1 ? 'border-b border-gray-300' : ''} ${
+          } ${index < currentPageData.length - 1 ? 'border-b border-gray-300' : ''} ${
             index === 0 ? 'rounded-t-lg' : ''
           } ${
-            index === (databaseData.googleNews?.length || 0) - 1 ? 'rounded-b-lg' : ''
+            index === currentPageData.length - 1 ? 'rounded-b-lg' : ''
           }`}>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-16 h-12 bg-blue-100 rounded flex items-center justify-center">
@@ -185,14 +265,14 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
 
   const renderInstagramContent = () => (
     <div className="space-y-0">
-      {databaseData?.instagram?.length ? (
-        databaseData.instagram.map((post, index) => (
-          <div key={index} className={`p-4 transition-all duration-200 hover:shadow-md ${
+      {currentPageData.length ? (
+        currentPageData.map((post, index) => (
+          <div key={startIndex + index} className={`p-4 transition-all duration-200 hover:shadow-md ${
             index % 2 === 0 ? 'bg-blue-100' : 'bg-gray-200'
-          } ${index < (databaseData.instagram?.length || 0) - 1 ? 'border-b border-gray-300' : ''} ${
+          } ${index < currentPageData.length - 1 ? 'border-b border-gray-300' : ''} ${
             index === 0 ? 'rounded-t-lg' : ''
           } ${
-            index === (databaseData.instagram?.length || 0) - 1 ? 'rounded-b-lg' : ''
+            index === currentPageData.length - 1 ? 'rounded-b-lg' : ''
           }`}>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-16 h-12 bg-pink-100 rounded flex items-center justify-center">
@@ -270,14 +350,14 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
 
   const renderIndonesiaNewsContent = () => (
     <div className="space-y-0">
-      {databaseData?.indonesiaNews?.length ? (
-        databaseData.indonesiaNews.map((news, index) => (
-          <div key={index} className={`p-4 transition-all duration-200 hover:shadow-md ${
+      {currentPageData.length ? (
+        currentPageData.map((news, index) => (
+          <div key={startIndex + index} className={`p-4 transition-all duration-200 hover:shadow-md ${
             index % 2 === 0 ? 'bg-blue-100' : 'bg-gray-200'
-          } ${index < (databaseData.indonesiaNews?.length || 0) - 1 ? 'border-b border-gray-300' : ''} ${
+          } ${index < currentPageData.length - 1 ? 'border-b border-gray-300' : ''} ${
             index === 0 ? 'rounded-t-lg' : ''
           } ${
-            index === (databaseData.indonesiaNews?.length || 0) - 1 ? 'rounded-b-lg' : ''
+            index === currentPageData.length - 1 ? 'rounded-b-lg' : ''
           }`}>
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-16 h-12 bg-red-100 rounded flex items-center justify-center">
@@ -366,6 +446,69 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
     }
   };
 
+  // Pagination component
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center space-x-2 text-sm text-gray-700">
+          <span>
+            Showing {startIndex + 1} to {Math.min(endIndex, currentTabData.length)} of {currentTabData.length} results
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Previous button */}
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`p-2 rounded-md transition-colors ${
+              currentPage === 1
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Page numbers */}
+          <div className="flex items-center space-x-1">
+            {getPageNumbers().map((page, index) => (
+              <button
+                key={index}
+                onClick={() => typeof page === 'number' && goToPage(page)}
+                disabled={page === '...'}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  page === currentPage
+                    ? 'bg-blue-600 text-white'
+                    : page === '...'
+                    ? 'text-gray-400 cursor-default'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          {/* Next button */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`p-2 rounded-md transition-colors ${
+              currentPage === totalPages
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+            }`}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
@@ -389,7 +532,7 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`py-3 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 bg-white rounded-t-lg px-3'
@@ -411,11 +554,14 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto">
           <div className="rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             {renderTabContent()}
           </div>
         </div>
+
+        {/* Pagination */}
+        {renderPagination()}
       </div>
     </div>
   );

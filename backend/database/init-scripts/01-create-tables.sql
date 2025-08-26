@@ -62,3 +62,4 @@ BEGIN
     RAISE NOTICE 'COVID-19 KMS database tables created successfully!';
 END $$;
 
+

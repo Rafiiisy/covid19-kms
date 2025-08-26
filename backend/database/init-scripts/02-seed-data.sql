@@ -51,3 +51,4 @@ BEGIN
     RAISE NOTICE 'ETL log records: 3';
 END $$;
 
+

@@ -160,8 +160,8 @@ func (h *DataHandler) GetYouTubeData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// Get YouTube data from database
-	data, err := database.GetDataBySource("youtube", 100)
+	// Get YouTube data from database (get ALL data by passing limit = 0)
+	data, err := database.GetDataBySource("youtube", 0)
 	if err != nil {
 		http.Error(w, "Failed to retrieve YouTube data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -220,8 +220,8 @@ func (h *DataHandler) GetGoogleNewsData(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// Get Google News data from database
-	data, err := database.GetDataBySource("google_news", 100)
+	// Get Google News data from database (get ALL data by passing limit = 0)
+	data, err := database.GetDataBySource("google_news", 0)
 	if err != nil {
 		http.Error(w, "Failed to retrieve Google News data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -289,8 +289,8 @@ func (h *DataHandler) GetInstagramData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// Get Instagram data from database
-	data, err := database.GetDataBySource("instagram", 100)
+	// Get Instagram data from database (get ALL data by passing limit = 0)
+	data, err := database.GetDataBySource("instagram", 0)
 	if err != nil {
 		http.Error(w, "Failed to retrieve Instagram data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -367,8 +367,8 @@ func (h *DataHandler) GetIndonesiaNewsData(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Get Indonesia News data from database
-	data, err := database.GetDataBySource("indonesia_news", 100)
+	// Get Indonesia News data from database (get ALL data by passing limit = 0)
+	data, err := database.GetDataBySource("indonesia_news", 0)
 	if err != nil {
 		http.Error(w, "Failed to retrieve Indonesia News data: "+err.Error(), http.StatusInternalServerError)
 		return
