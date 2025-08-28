@@ -57,7 +57,7 @@ if not exist node_modules (
 echo.
 echo 🚀 Starting development server...
 echo 🌐 Frontend will be available at: http://localhost:5173
-echo 🔗 Backend API should be at: http://localhost:8000
+echo 🔗 Backend API should be at: %VITE_DB_API_URL%
 echo.
 echo 💡 Press Ctrl+C to stop the server
 echo.
