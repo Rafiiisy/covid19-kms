@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_DB_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'https://backend-service-production-2c37.up.railway.app';
 
 // API client with base configuration
 const apiClient = axios.create({
