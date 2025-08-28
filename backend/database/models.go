@@ -17,14 +17,16 @@ type RawData struct {
 
 // ProcessedData represents processed data
 type ProcessedData struct {
-	ID             int       `json:"id"`
-	Source         string    `json:"source"`
-	ProcessedAt    time.Time `json:"processed_at"`
-	Title          string    `json:"title"`
-	Content        string    `json:"content"`
-	RelevanceScore float64   `json:"relevance_score"`
-	Sentiment      string    `json:"sentiment"`
-	ProcessedData  string    `json:"processed_data"` // JSON string
+	ID                  int       `json:"id"`
+	Source              string    `json:"source"`
+	ProcessedAt         time.Time `json:"processed_at"`
+	Title               string    `json:"title"`
+	Content             string    `json:"content"`
+	RelevanceScore      float64   `json:"relevance_score"`
+	Sentiment           string    `json:"sentiment"`
+	SentimentScore      *float64  `json:"sentiment_score,omitempty"`
+	SentimentConfidence *float64  `json:"sentiment_confidence,omitempty"`
+	ProcessedData       string    `json:"processed_data"` // JSON string
 }
 
 // CreateTables creates all necessary tables
@@ -45,6 +47,8 @@ func CreateTables() error {
 			content TEXT,
 			relevance_score DECIMAL(3,2),
 			sentiment VARCHAR(20),
+			sentiment_score DECIMAL(3,2),
+			sentiment_confidence DECIMAL(3,2),
 			processed_data JSONB NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_raw_data_source ON raw_data(source)`,

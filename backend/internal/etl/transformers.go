@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"covid19-kms/internal/services"
 )
 
 // DataTransformer handles data cleaning, transformation, and enrichment
@@ -35,6 +37,9 @@ type TransformedVideo struct {
 	WordCount           int                    `json:"word_count"`
 	ExtractedAt         string                 `json:"extracted_at"`
 	TransformedAt       string                 `json:"transformed_at"`
+	Sentiment           string                 `json:"sentiment"`
+	SentimentScore      float64                `json:"sentiment_score"`
+	SentimentConfidence float64                `json:"sentiment_confidence"`
 	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -51,6 +56,9 @@ type TransformedArticle struct {
 	WordCount           int     `json:"word_count"`
 	ExtractedAt         string  `json:"extracted_at"`
 	TransformedAt       string  `json:"transformed_at"`
+	Sentiment           string  `json:"sentiment"`
+	SentimentScore      float64 `json:"sentiment_score"`
+	SentimentConfidence float64 `json:"sentiment_confidence"`
 }
 
 // DataSummary represents summary statistics
@@ -202,6 +210,10 @@ func (dt *DataTransformer) transformYouTubeComment(comment interface{}, video in
 				},
 			}
 
+			// NEW: Calculate real sentiment using sentiment analyzer
+			sentimentAnalyzer := services.NewSentimentAnalyzer()
+			sentimentResult := sentimentAnalyzer.AnalyzeSentiment(content)
+
 			// Create transformed video entry (representing a comment)
 			return &TransformedVideo{
 				ID:                  fmt.Sprintf("comment_%v", time.Now().UnixNano()),
@@ -216,6 +228,9 @@ func (dt *DataTransformer) transformYouTubeComment(comment interface{}, video in
 				WordCount:           len(strings.Split(content, " ")),
 				ExtractedAt:         time.Now().Format(time.RFC3339),
 				TransformedAt:       time.Now().Format(time.RFC3339),
+				Sentiment:           sentimentResult.Category,
+				SentimentScore:      sentimentResult.Score,
+				SentimentConfidence: sentimentResult.Confidence,
 				Metadata:            metadata,
 			}
 		}
@@ -347,6 +362,11 @@ func (dt *DataTransformer) transformYouTubeVideo(videoMap map[string]interface{}
 	// Generate unique ID
 	id := dt.generateVideoID(videoMap)
 
+	// NEW: Calculate real sentiment using sentiment analyzer
+	sentimentAnalyzer := services.NewSentimentAnalyzer()
+	combinedText := title + " " + description
+	sentimentResult := sentimentAnalyzer.AnalyzeSentiment(combinedText)
+
 	// Create transformed video
 	transformedVideo := &TransformedVideo{
 		ID:                  id,
@@ -361,6 +381,9 @@ func (dt *DataTransformer) transformYouTubeVideo(videoMap map[string]interface{}
 		WordCount:           wordCount,
 		ExtractedAt:         time.Now().Format(time.RFC3339),
 		TransformedAt:       time.Now().Format(time.RFC3339),
+		Sentiment:           sentimentResult.Category,
+		SentimentScore:      sentimentResult.Score,
+		SentimentConfidence: sentimentResult.Confidence,
 	}
 
 	return transformedVideo
@@ -622,6 +645,11 @@ func (dt *DataTransformer) transformNewsItem(articleMap map[string]interface{}) 
 	// Calculate word count
 	wordCount := len(strings.Fields(title + " " + description + " " + content))
 
+	// NEW: Calculate real sentiment using sentiment analyzer
+	sentimentAnalyzer := services.NewSentimentAnalyzer()
+	combinedText := title + " " + description + " " + content
+	sentimentResult := sentimentAnalyzer.AnalyzeSentiment(combinedText)
+
 	// Generate unique ID
 	id := dt.generateArticleID(articleMap)
 
@@ -638,6 +666,9 @@ func (dt *DataTransformer) transformNewsItem(articleMap map[string]interface{}) 
 		WordCount:           wordCount,
 		ExtractedAt:         time.Now().Format(time.RFC3339),
 		TransformedAt:       time.Now().Format(time.RFC3339),
+		Sentiment:           sentimentResult.Category,
+		SentimentScore:      sentimentResult.Score,
+		SentimentConfidence: sentimentResult.Confidence,
 	}
 
 	return transformedArticle
@@ -702,6 +733,10 @@ func (dt *DataTransformer) transformInstagramPost(postMap map[string]interface{}
 	// Calculate word count
 	wordCount := len(strings.Fields(caption))
 
+	// NEW: Calculate real sentiment using sentiment analyzer
+	sentimentAnalyzer := services.NewSentimentAnalyzer()
+	sentimentResult := sentimentAnalyzer.AnalyzeSentiment(caption)
+
 	// Generate unique ID
 	id := dt.generateInstagramPostID(postMap)
 
@@ -718,6 +753,9 @@ func (dt *DataTransformer) transformInstagramPost(postMap map[string]interface{}
 		WordCount:           wordCount,
 		ExtractedAt:         timestamp,
 		TransformedAt:       time.Now().Format(time.RFC3339),
+		Sentiment:           sentimentResult.Category,
+		SentimentScore:      sentimentResult.Score,
+		SentimentConfidence: sentimentResult.Confidence,
 	}
 
 	return transformedArticle

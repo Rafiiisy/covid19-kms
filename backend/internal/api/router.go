@@ -31,6 +31,7 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("/api/etl/extract", r.corsMiddleware(r.etlHandler.ExtractData))
 	mux.HandleFunc("/api/etl/transform", r.corsMiddleware(r.etlHandler.TransformData))
 	mux.HandleFunc("/api/etl/load", r.corsMiddleware(r.etlHandler.LoadData))
+	mux.HandleFunc("/api/etl/cleanup/sentiment", r.corsMiddleware(r.etlHandler.CleanupSentiments))
 	mux.HandleFunc("/api/etl/data", r.corsMiddleware(r.dataHandler.GetLatestData))
 	mux.HandleFunc("/api/etl/data/source", r.corsMiddleware(r.dataHandler.GetDataBySource))
 	mux.HandleFunc("/api/etl/data/stats", r.corsMiddleware(r.dataHandler.GetDataStats))
@@ -41,6 +42,8 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("/api/etl/data/instagram", r.corsMiddleware(r.dataHandler.GetInstagramData))
 	mux.HandleFunc("/api/etl/data/indonesia-news", r.corsMiddleware(r.dataHandler.GetIndonesiaNewsData))
 	mux.HandleFunc("/api/etl/data/summary", r.corsMiddleware(r.dataHandler.GetDataSummary))
+	mux.HandleFunc("/api/etl/data/sentiment-distribution", r.corsMiddleware(r.dataHandler.GetSentimentDistribution))
+	mux.HandleFunc("/api/etl/data/word-frequency", r.corsMiddleware(r.dataHandler.GetWordFrequency))
 
 	mux.HandleFunc("/health", r.corsMiddleware(r.etlHandler.HealthCheck))
 	mux.HandleFunc("/api/health", r.corsMiddleware(r.etlHandler.HealthCheck))

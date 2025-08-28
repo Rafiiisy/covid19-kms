@@ -11,10 +11,16 @@ import (
 
 	"covid19-kms/database"
 	"covid19-kms/internal/api"
+	"covid19-kms/internal/config"
 )
 
 func main() {
 	log.Println("🚀 Starting COVID-19 KMS ETL API Server")
+
+	// Load environment variables from .env file
+	if err := config.LoadDefaultEnv(); err != nil {
+		log.Printf("⚠️ Warning: Failed to load .env file: %v", err)
+	}
 
 	// Initialize database
 	if err := database.InitDatabase(); err != nil {

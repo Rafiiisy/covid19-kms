@@ -60,13 +60,15 @@ func (h *DataHandler) retrieveLatestData() ([]map[string]interface{}, error) {
 	for _, data := range processedData {
 		// Convert database model to response format
 		result := map[string]interface{}{
-			"source":          data.Source,
-			"title":           data.Title,
-			"content":         data.Content,
-			"relevance_score": data.RelevanceScore,
-			"sentiment":       data.Sentiment,
-			"processed_at":    data.ProcessedAt.Format(time.RFC3339),
-			"processed_data":  data.ProcessedData,
+			"source":               data.Source,
+			"title":                data.Title,
+			"content":              data.Content,
+			"relevance_score":      data.RelevanceScore,
+			"sentiment":            data.Sentiment,
+			"sentiment_score":      data.SentimentScore,
+			"sentiment_confidence": data.SentimentConfidence,
+			"processed_at":         data.ProcessedAt.Format(time.RFC3339),
+			"processed_data":       data.ProcessedData,
 		}
 		results = append(results, result)
 	}
@@ -101,13 +103,15 @@ func (h *DataHandler) GetDataBySource(w http.ResponseWriter, r *http.Request) {
 	var results []map[string]interface{}
 	for _, item := range data {
 		result := map[string]interface{}{
-			"source":          item.Source,
-			"title":           item.Title,
-			"content":         item.Content,
-			"relevance_score": item.RelevanceScore,
-			"sentiment":       item.Sentiment,
-			"processed_at":    item.ProcessedAt.Format(time.RFC3339),
-			"processed_data":  item.ProcessedData,
+			"source":               item.Source,
+			"title":                item.Title,
+			"content":              item.Content,
+			"relevance_score":      item.RelevanceScore,
+			"sentiment":            item.Sentiment,
+			"sentiment_score":      item.SentimentScore,
+			"sentiment_confidence": item.SentimentConfidence,
+			"processed_at":         item.ProcessedAt.Format(time.RFC3339),
+			"processed_data":       item.ProcessedData,
 		}
 		results = append(results, result)
 	}
@@ -176,6 +180,9 @@ func (h *DataHandler) GetYouTubeData(w http.ResponseWriter, r *http.Request) {
 			"title":                 item.Title,
 			"description":           item.Content,
 			"covid_relevance_score": item.RelevanceScore,
+			"sentiment":             item.Sentiment,
+			"sentiment_score":       item.SentimentScore,
+			"sentiment_confidence":  item.SentimentConfidence,
 		}
 
 		// Parse processed_data JSON to extract metadata
@@ -231,13 +238,15 @@ func (h *DataHandler) GetGoogleNewsData(w http.ResponseWriter, r *http.Request) 
 	var enrichedData []map[string]interface{}
 	for _, item := range data {
 		enrichedItem := map[string]interface{}{
-			"id":              item.ID,
-			"source":          item.Source,
-			"processed_at":    item.ProcessedAt,
-			"title":           item.Title,
-			"content":         item.Content,
-			"relevance_score": item.RelevanceScore,
-			"sentiment":       item.Sentiment,
+			"id":                   item.ID,
+			"source":               item.Source,
+			"processed_at":         item.ProcessedAt,
+			"title":                item.Title,
+			"content":              item.Content,
+			"relevance_score":      item.RelevanceScore,
+			"sentiment":            item.Sentiment,
+			"sentiment_score":      item.SentimentScore,
+			"sentiment_confidence": item.SentimentConfidence,
 		}
 
 		// Parse processed_data JSON to extract metadata
@@ -300,13 +309,15 @@ func (h *DataHandler) GetInstagramData(w http.ResponseWriter, r *http.Request) {
 	var enrichedData []map[string]interface{}
 	for _, item := range data {
 		enrichedItem := map[string]interface{}{
-			"id":              item.ID,
-			"source":          item.Source,
-			"processed_at":    item.ProcessedAt,
-			"title":           item.Title,
-			"content":         item.Content,
-			"relevance_score": item.RelevanceScore,
-			"sentiment":       item.Sentiment,
+			"id":                   item.ID,
+			"source":               item.Source,
+			"processed_at":         item.ProcessedAt,
+			"title":                item.Title,
+			"content":              item.Content,
+			"relevance_score":      item.RelevanceScore,
+			"sentiment":            item.Sentiment,
+			"sentiment_score":      item.SentimentScore,
+			"sentiment_confidence": item.SentimentConfidence,
 		}
 
 		// Parse processed_data JSON to extract metadata
@@ -378,13 +389,15 @@ func (h *DataHandler) GetIndonesiaNewsData(w http.ResponseWriter, r *http.Reques
 	var enrichedData []map[string]interface{}
 	for _, item := range data {
 		enrichedItem := map[string]interface{}{
-			"id":              item.ID,
-			"source":          item.Source,
-			"processed_at":    item.ProcessedAt,
-			"title":           item.Title,
-			"content":         item.Content,
-			"relevance_score": item.RelevanceScore,
-			"sentiment":       item.Sentiment,
+			"id":                   item.ID,
+			"source":               item.Source,
+			"processed_at":         item.ProcessedAt,
+			"title":                item.Title,
+			"content":              item.Content,
+			"relevance_score":      item.RelevanceScore,
+			"sentiment":            item.Sentiment,
+			"sentiment_score":      item.SentimentScore,
+			"sentiment_confidence": item.SentimentConfidence,
 		}
 
 		// Parse processed_data JSON to extract metadata
@@ -425,6 +438,56 @@ func (h *DataHandler) GetIndonesiaNewsData(w http.ResponseWriter, r *http.Reques
 		"source":      "indonesia_news",
 		"data":        enrichedData,
 		"total_count": len(enrichedData),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetSentimentDistribution retrieves sentiment distribution across all sources
+func (h *DataHandler) GetSentimentDistribution(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get sentiment distribution from database
+	distribution, err := database.GetSentimentDistribution()
+	if err != nil {
+		http.Error(w, "Failed to retrieve sentiment distribution: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"status":       "success",
+		"timestamp":    time.Now().Format(time.RFC3339),
+		"distribution": distribution,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetWordFrequency retrieves word frequency analysis across all sources
+func (h *DataHandler) GetWordFrequency(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get word frequency from database
+	wordFrequency, err := database.GetWordFrequency()
+	if err != nil {
+		http.Error(w, "Failed to retrieve word frequency: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"status":        "success",
+		"timestamp":     time.Now().Format(time.RFC3339),
+		"wordFrequency": wordFrequency,
 	}
 
 	json.NewEncoder(w).Encode(response)

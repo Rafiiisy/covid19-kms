@@ -45,12 +45,14 @@ func (dl *DataLoader) LoadData(data *TransformedData) *LoadResult {
 		}
 
 		processedData := &database.ProcessedData{
-			Source:         "youtube",
-			Title:          video.Title,
-			Content:        video.Description,
-			RelevanceScore: video.CovidRelevanceScore,
-			Sentiment:      "neutral", // Default sentiment for videos
-			ProcessedData:  string(videoJSON),
+			Source:              "youtube",
+			Title:               video.Title,
+			Content:             video.Description,
+			RelevanceScore:      video.CovidRelevanceScore,
+			Sentiment:           video.Sentiment,
+			SentimentScore:      &video.SentimentScore,
+			SentimentConfidence: &video.SentimentConfidence,
+			ProcessedData:       string(videoJSON),
 		}
 
 		if err := database.InsertProcessedData(processedData); err != nil {
@@ -89,12 +91,14 @@ func (dl *DataLoader) LoadData(data *TransformedData) *LoadResult {
 		}
 
 		processedData := &database.ProcessedData{
-			Source:         sourceName,
-			Title:          article.Title,
-			Content:        article.Content,
-			RelevanceScore: article.CovidRelevanceScore,
-			Sentiment:      "neutral", // Default sentiment for articles
-			ProcessedData:  string(articleJSON),
+			Source:              sourceName,
+			Title:               article.Title,
+			Content:             article.Content,
+			RelevanceScore:      article.CovidRelevanceScore,
+			Sentiment:           article.Sentiment,
+			SentimentScore:      &article.SentimentScore,
+			SentimentConfidence: &article.SentimentConfidence,
+			ProcessedData:       string(articleJSON),
 		}
 
 		if err := database.InsertProcessedData(processedData); err != nil {

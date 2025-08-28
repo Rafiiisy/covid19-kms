@@ -2,10 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	"covid19-kms/database"
 	"covid19-kms/internal/etl"
+	"covid19-kms/internal/services"
 )
 
 // ETLHandler handles HTTP requests for ETL operations
@@ -61,7 +65,7 @@ func (h *ETLHandler) GetPipelineStatus(w http.ResponseWriter, r *http.Request) {
 		"timestamp":   time.Now().Format(time.RFC3339),
 		"service":     "ETL Pipeline API",
 		"version":     "1.0.0",
-		"endpoints":   []string{"/api/etl/run", "/api/etl/status", "/api/etl/extract", "/api/etl/transform", "/api/etl/load"},
+		"endpoints":   []string{"/api/etl/run", "/api/etl/status", "/api/etl/extract", "/api/etl/transform", "/api/etl/load", "/api/etl/cleanup/sentiment", "/api/etl/data/*"},
 		"description": "COVID-19 Knowledge Management System ETL Pipeline",
 	}
 
@@ -233,4 +237,67 @@ func (h *ETLHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	// Write response
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonData)
+}
+
+// CleanupSentiments handles sentiment cleanup requests
+func (h *ETLHandler) CleanupSentiments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get database connection
+	if err := database.EnsureConnection(); err != nil {
+		http.Error(w, fmt.Sprintf("Database connection failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create cleanup service
+	cleanupService := services.NewSentimentCleanupService(database.DB)
+
+	// Parse query parameters
+	source := r.URL.Query().Get("source")
+	startDateStr := r.URL.Query().Get("start_date")
+	endDateStr := r.URL.Query().Get("end_date")
+
+	var result *services.CleanupResult
+
+	// Determine cleanup type based on parameters
+	if source != "" {
+		// Clean specific source
+		log.Printf("🧹 Starting sentiment cleanup for source: %s", source)
+		result = cleanupService.CleanSentimentBySource(source)
+	} else if startDateStr != "" && endDateStr != "" {
+		// Clean by date range
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid start_date format: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		endDate, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid end_date format: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("🧹 Starting sentiment cleanup for date range: %s to %s", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+		result = cleanupService.CleanSentimentByDateRange(startDate, endDate)
+	} else {
+		// Clean all sentiments
+		log.Printf("🧹 Starting sentiment cleanup for all records")
+		result = cleanupService.CleanAllSentiments()
+	}
+
+	// Return result
+	response := map[string]interface{}{
+		"status":    "success",
+		"timestamp": time.Now().Format(time.RFC3339),
+		"operation": "sentiment_cleanup",
+		"result":    result,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }

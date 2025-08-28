@@ -123,6 +123,16 @@ export const etlAPI = {
     const response = await apiClient.get('/api/etl/data/summary');
     return response.data;
   },
+
+  getSentimentDistribution: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/sentiment-distribution');
+    return response.data;
+  },
+
+  getWordFrequency: async (): Promise<any> => {
+    const response = await apiClient.get('/api/etl/data/word-frequency');
+    return response.data;
+  },
 };
 
 export default apiClient;

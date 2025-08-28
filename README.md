@@ -169,7 +169,7 @@ cp .env.example .env
 # Edit .env file with your API keys and GCP settings
 
 # Run the backend
-go run cmd/server/main.go
+go run cmd/api/main.go
 ```
 
 ### 3. Set Up Frontend (React)
@@ -204,7 +204,7 @@ gcloud services enable cloudbuild.googleapis.com
 ```bash
 # Terminal 1: Backend
 cd backend
-go run cmd/server/main.go
+go run cmd/api/main.go
 
 # Terminal 2: Frontend
 cd frontend
@@ -230,13 +230,17 @@ npm run dev
 - `GET /api/etl/data/summary` - Overall data summary
 - `GET /api/etl/data/source` - Data by source
 - `GET /api/etl/data/stats` - Data statistics
+- `GET /api/etl/data/sentiment-distribution` - Sentiment analysis across all sources
+- `GET /api/etl/data/word-frequency` - Word frequency analysis and trending topics
+- `POST /api/etl/cleanup/sentiment` - Cleanup and recalculate sentiment scores
 
 ## 📊 Dashboard Features
 
 ### Data Visualization
 - **Multi-Source Data Dashboard** - Unified view of all data sources
 - **Source Distribution Charts** - Pie charts showing data from YouTube, Google News, Instagram, Indonesia News
-- **Pipeline Performance Metrics** - ETL pipeline status and execution times
+- **Sentiment Distribution Charts** - Stacked bar charts showing sentiment analysis across all sources
+- **Word Cloud Visualization** - Interactive word frequency analysis with sentiment color coding
 - **Content Metadata Display** - Rich metadata for videos, posts, and articles
 - **Real-time Data Refresh** - On-demand ETL pipeline execution
 - **Interactive Records Popup** - Detailed view of all processed data with tabbed interface
@@ -314,7 +318,7 @@ gsutil -m cp -r dist/* gs://your-bucket-name/
 ```bash
 # Backend
 cd backend
-go run cmd/server/main.go
+go run cmd/api/main.go
 
 # Frontend
 cd frontend

@@ -1,0 +1,580 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage[bahasa]{babel}
+
+% Page setup
+\geometry{margin=1in}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Sistem Riset Big Data}
+\lhead{Laporan Teknis}
+\rfoot{Halaman \thepage}
+
+% Code listing setup
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    backgroundcolor=\color{gray!10},
+    showstringspaces=false
+}
+
+% Title page
+\title{\Huge\textbf{Sistem Riset Big Data}\\[0.5cm]
+\Large Pipeline Data Komprehensif untuk Analisis Riset COVID-19}
+\author{Laporan Teknis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Ringkasan Eksekutif}
+
+Laporan ini menyajikan analisis komprehensif dari Sistem Riset Big Data, sebuah pipeline data yang canggih yang dirancang untuk mengumpulkan, memproses, dan menganalisis data riset terkait COVID-19 dari berbagai sumber heterogen. Sistem ini mengimplementasikan arsitektur big data modern yang memanfaatkan teknologi terkini termasuk Apache Airflow, Apache Kafka, Apache Spark, Apache Hadoop (HDFS), PostgreSQL, dan dbt untuk transformasi data.
+
+Tujuan utama sistem ini adalah untuk memberikan wawasan real-time terhadap konten terkait COVID-19 di berbagai media berita, platform sosial, institusi akademik, dan platform konten video. Sistem memproses data melalui pipeline ETL (Extract, Transform, Load) yang terdefinisi dengan baik, mengubah data mentah menjadi analitik yang dapat ditindaklanjuti melalui desain data warehouse skema bintang.
+
+\section{Ikhtisar Sistem}
+
+\subsection{Tujuan Proyek}
+Sistem Riset Big Data berfungsi sebagai platform analitik data komprehensif yang berfokus pada riset dan pemantauan COVID-19. Sistem ini mengagregasi data dari berbagai sumber termasuk:
+
+\begin{itemize}
+    \item \textbf{Media Berita}: Kompas, Detik, NewsAPI, GNews
+    \item \textbf{Media Sosial}: Reddit, Twitter
+    \item \textbf{Platform Video}: YouTube (WHO, CDC, saluran akademik)
+    \item \textbf{Konten Akademik}: UGM (Universitas Gadjah Mada) riset dan publikasi
+\end{itemize}
+
+\subsection{Tujuan Utama}
+\begin{enumerate}
+    \item Pengumpulan data real-time dari berbagai sumber heterogen
+    \item Pemrosesan dan transformasi data otomatis
+    \item Analisis sentimen dan klasifikasi topik
+    \item Dashboard interaktif untuk visualisasi data
+    \item Arsitektur yang dapat diskalakan dan toleran terhadap kesalahan
+    \item Jaminan kualitas data dan validasi
+\end{enumerate}
+
+\section{Arsitektur Sistem}
+
+\subsection{Arsitektur Tingkat Tinggi}
+Sistem mengikuti pola arsitektur big data modern dengan komponen-komponen berikut:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    box/.style={rectangle, draw, minimum width=2cm, minimum height=1cm, align=center},
+    arrow/.style={->, thick}
+]
+    % Data Sources
+    \node[box, fill=blue!20] (ds1) {Sumber\\Berita};
+    \node[box, fill=blue!20, below of=ds1] (ds2) {Media\\Sosial};
+    \node[box, fill=blue!20, below of=ds2] (ds3) {Konten\\YouTube};
+    \node[box, fill=blue!20, below of=ds3] (ds4) {Akademik\\UGM};
+    
+    % Scrapers
+    \node[box, fill=green!20, right of=ds1, xshift=2cm] (s1) {Scraper\\Berita};
+    \node[box, fill=green!20, right of=ds2, xshift=2cm] (s2) {Scraper\\Sosial};
+    \node[box, fill=green!20, right of=ds3, xshift=2cm] (s3) {Scraper\\YouTube};
+    \node[box, fill=green!20, right of=ds4, xshift=2cm] (s4) {Scraper\\UGM};
+    
+    % Airflow
+    \node[box, fill=orange!20, right of=s2, xshift=3cm] (af) {Apache\\Airflow};
+    
+    % Kafka
+    \node[box, fill=purple!20, right of=af, xshift=2cm] (k) {Apache\\Kafka};
+    
+    % Spark
+    \node[box, fill=red!20, right of=k, xshift=2cm] (sp) {Apache\\Spark};
+    
+    % Storage
+    \node[box, fill=yellow!20, right of=sp, xshift=2cm] (pg) {PostgreSQL};
+    \node[box, fill=yellow!20, below of=pg] (hdfs) {HDFS};
+    
+    % dbt
+    \node[box, fill=cyan!20, right of=pg, xshift=2cm] (dbt) {Transformasi\\dbt};
+    
+    % Dashboard
+    \node[box, fill=pink!20, right of=dbt, xshift=2cm] (ui) {Dashboard\\UI};
+    
+    % Arrows
+    \draw[arrow] (ds1) -- (s1);
+    \draw[arrow] (ds2) -- (s2);
+    \draw[arrow] (ds3) -- (s3);
+    \draw[arrow] (ds4) -- (s4);
+    \draw[arrow] (s1) -- (af);
+    \draw[arrow] (s2) -- (af);
+    \draw[arrow] (s3) -- (af);
+    \draw[arrow] (s4) -- (af);
+    \draw[arrow] (af) -- (k);
+    \draw[arrow] (k) -- (sp);
+    \draw[arrow] (sp) -- (pg);
+    \draw[arrow] (sp) -- (hdfs);
+    \draw[arrow] (pg) -- (dbt);
+    \draw[arrow] (dbt) -- (ui);
+    
+\end{tikzpicture}
+\caption{Ikhtisar Arsitektur Sistem}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Stack Teknologi}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Komponen} & \textbf{Teknologi} & \textbf{Tujuan} \\
+\hline
+Pengumpulan Data & Python Scrapers & Web scraping dan integrasi API \\
+\hline
+Orkestrasi Workflow & Apache Airflow & Penjadwalan dan monitoring pipeline \\
+\hline
+Pemrosesan Stream & Apache Kafka & Ingesti data real-time \\
+\hline
+Pemrosesan Data & Apache Spark & Pemrosesan batch dan stream \\
+\hline
+Penyimpanan & PostgreSQL + HDFS & Penyimpanan relasional dan terdistribusi \\
+\hline
+Transformasi Data & dbt & Transformasi berbasis SQL \\
+\hline
+Kontainerisasi & Docker \& Docker Compose & Orkestrasi layanan \\
+\hline
+Dashboard & Streamlit & Visualisasi data real-time \\
+\hline
+\end{tabular}
+\caption{Ikhtisar Stack Teknologi}
+\label{tab:tech-stack}
+\end{table}
+
+\section{Komponen Infrastruktur}
+
+\subsection{Layanan Terkontainerisasi}
+Sistem sepenuhnya terkontainerisasi menggunakan Docker Compose, menyediakan layanan-layanan berikut:
+
+\begin{lstlisting}[language=bash, caption=Layanan Docker Compose]
+services:
+  # Komponen HDFS
+  namenode:      # HDFS NameNode (Port 9870)
+  datanode:      # HDFS DataNode (Port 9864)
+  resourcemanager: # YARN ResourceManager (Port 8088)
+  nodemanager:   # YARN NodeManager (Port 8042)
+  
+  # Pemrosesan Data
+  spark:         # Apache Spark (Port 8080)
+  kafka:         # Apache Kafka (Port 9092)
+  zookeeper:     # Koordinasi Kafka (Port 2181)
+  
+  # Orkestrasi Workflow
+  airflow:       # Airflow Web Server (Port 8081)
+  airflow-scheduler: # Airflow Scheduler
+  
+  # Database
+  postgres:      # PostgreSQL (Port 5432)
+  
+  # Monitoring
+  kafka-ui:      # Kafka UI (Port 8083)
+\end{lstlisting}
+
+\subsection{Titik Akses Layanan}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Layanan} & \textbf{URL} & \textbf{Tujuan} \\
+\hline
+Airflow & http://localhost:8081 & Orkestrasi workflow \\
+\hline
+Kafka UI & http://localhost:8083 & Monitoring stream \\
+\hline
+Spark UI & http://localhost:8080 & Monitoring job \\
+\hline
+HDFS NameNode & http://localhost:9870 & Manajemen sistem file \\
+\hline
+YARN & http://localhost:8088 & Manajemen sumber daya \\
+\hline
+PostgreSQL & localhost:5432 & Akses database \\
+\hline
+Dashboard & http://localhost:8501 & Visualisasi data \\
+\hline
+\end{tabular}
+\caption{Titik Akses Layanan}
+\label{tab:service-access}
+\end{table}
+
+\section{Alur Pipeline Data}
+
+\subsection{Ikhtisar Pipeline}
+Pipeline data beroperasi pada jadwal 4 jam dan mengikuti urutan berikut:
+
+\begin{enumerate}
+    \item \textbf{Pengumpulan Data}: Eksekusi paralel semua scraper
+    \item \textbf{Validasi Data}: Pemeriksaan kualitas dan validasi
+    \item \textbf{Penyimpanan Data}: Backup ke HDFS dan PostgreSQL
+    \item \textbf{Pemrosesan Data}: Analisis dan transformasi berbasis Spark
+    \item \textbf{Update Analitik}: Transformasi dbt dan refresh dashboard
+    \item \textbf{Notifikasi}: Pelaporan status penyelesaian
+\end{enumerate}
+
+\subsection{Tahapan Pipeline Detail}
+
+\subsubsection{1. Tahap Pengumpulan Data}
+\begin{itemize}
+    \item \textbf{Scraper Berita}: Mengumpulkan artikel dari Kompas, Detik, NewsAPI, GNews
+    \item \textbf{Scraper Media Sosial}: Mengumpulkan post dari Reddit dan Twitter
+    \item \textbf{Scraper YouTube}: Mengekstrak data video dari WHO, CDC, dan saluran akademik
+    \item \textbf{Scraper UGM}: Mengumpulkan konten akademik dari Universitas Gadjah Mada
+\end{itemize}
+
+\subsubsection{2. Tahap Validasi Data}
+\begin{itemize}
+    \item Penilaian kualitas konten
+    \item Deteksi duplikasi
+    \item Validasi kelengkapan data
+    \item Pemeriksaan kepatuhan skema
+\end{itemize}
+
+\subsubsection{3. Tahap Penyimpanan Data}
+\begin{itemize}
+    \item Backup data mentah ke HDFS
+    \item Penyimpanan data terstruktur di PostgreSQL
+    \item Manajemen metadata
+\end{itemize}
+
+\subsubsection{4. Tahap Pemrosesan Data}
+\begin{itemize}
+    \item Analisis sentimen menggunakan NLP
+    \item Klasifikasi topik dan ekstraksi kata kunci
+    \item Agregasi dan ringkasan data
+    \item Pemrosesan stream real-time
+\end{itemize}
+
+\subsubsection{5. Tahap Analitik}
+\begin{itemize}
+    \item Eksekusi model dbt
+    \item Populasi skema bintang
+    \item Generasi tabel analitik
+    \item Refresh data dashboard
+\end{itemize}
+
+\section{Model Data dan Skema}
+
+\subsection{Desain Skema Bintang}
+Sistem mengimplementasikan data warehouse skema bintang dengan struktur berikut:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    fact/.style={rectangle, draw, fill=red!20, minimum width=3cm, minimum height=1.5cm, align=center},
+    dim/.style={rectangle, draw, fill=blue!20, minimum width=2.5cm, minimum height=1cm, align=center},
+    arrow/.style={->, thick}
+]
+    % Fact Table
+    \node[fact] (fact) {fact\_covid\_mentions\\(Tabel Fakta)};
+    
+    % Dimension Tables
+    \node[dim, above left of=fact, xshift=-2cm] (dim1) {dim\_sources\\(Sumber)};
+    \node[dim, above of=fact] (dim2) {dim\_dates\\(Tanggal)};
+    \node[dim, above right of=fact, xshift=2cm] (dim3) {dim\_topics\\(Topik)};
+    \node[dim, below left of=fact, xshift=-2cm] (dim4) {dim\_sentiments\\(Sentimen)};
+    \node[dim, below of=fact] (dim5) {dim\_keywords\\(Kata Kunci)};
+    
+    % Bridge Table
+    \node[dim, below right of=fact, xshift=2cm] (bridge) {bridge\_mentions\_keywords\\(Jembatan)};
+    
+    % Arrows
+    \draw[arrow] (dim1) -- (fact);
+    \draw[arrow] (dim2) -- (fact);
+    \draw[arrow] (dim3) -- (fact);
+    \draw[arrow] (dim4) -- (fact);
+    \draw[arrow] (fact) -- (bridge);
+    \draw[arrow] (dim5) -- (bridge);
+    
+\end{tikzpicture}
+\caption{Model Data Skema Bintang}
+\label{fig:star-schema}
+\end{figure}
+
+\subsection{Tabel Utama}
+
+\subsubsection{Tabel Fakta}
+\begin{lstlisting}[language=sql, caption=Skema Tabel Fakta]
+CREATE TABLE fact_covid_mentions (
+    id SERIAL PRIMARY KEY,
+    source_id INTEGER REFERENCES dim_sources(id),
+    date_id INTEGER REFERENCES dim_dates(id),
+    topic_id INTEGER REFERENCES dim_topics(id),
+    sentiment_id INTEGER REFERENCES dim_sentiments(id),
+    title TEXT,
+    content TEXT,
+    url TEXT,
+    engagement_score INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+\end{lstlisting}
+
+\subsubsection{Tabel Dimensi}
+\begin{itemize}
+    \item \textbf{dim\_sources}: Informasi sumber (nama, tipe, platform)
+    \item \textbf{dim\_dates}: Dimensi tanggal (tanggal, hari, bulan, tahun, kuartal)
+    \item \textbf{dim\_topics}: Kategori dan klasifikasi topik
+    \item \textbf{dim\_sentiments}: Label sentimen dan rentang skor
+    \item \textbf{dim\_keywords}: Informasi kata kunci dan bobot
+\end{itemize}
+
+\subsubsection{Tabel Analitik}
+Sistem menghasilkan beberapa tabel analitik untuk konsumsi dashboard:
+\begin{itemize}
+    \item \textbf{fct\_bar\_chart\_data}: Analitik distribusi sumber
+    \item \textbf{fct\_line\_chart\_data}: Data tren time series
+    \item \textbf{fct\_pie\_chart\_data}: Distribusi sentimen
+    \item \textbf{fct\_word\_cloud\_data}: Analisis frekuensi kata kunci
+    \item \textbf{fct\_daily\_summary}: Metrik agregat harian
+    \item \textbf{rpt\_content\_overview}: Laporan ikhtisar konten
+\end{itemize}
+
+\section{Pemrosesan Data dan Analitik}
+
+\subsection{Job Pemrosesan Spark}
+Sistem mencakup beberapa job pemrosesan berbasis Spark:
+
+\begin{lstlisting}[language=python, caption=Struktur Job Spark]
+# Job pemrosesan utama
+backend/processing/jobs/
+├── etl_batch.py           # Pemrosesan ETL batch
+├── preprocessing.py       # Preprocessing data
+└── spark_topic_sentiment.py  # Analisis topik dan sentimen
+\end{lstlisting}
+
+\subsection{Fitur Pemrosesan Utama}
+\begin{itemize}
+    \item \textbf{Analisis Sentimen}: Scoring sentimen berbasis NLP
+    \item \textbf{Klasifikasi Topik}: Identifikasi topik COVID-19
+    \item \textbf{Ekstraksi Kata Kunci}: Identifikasi kata kunci otomatis
+    \item \textbf{Deduplikasi Data}: Penghapusan konten duplikat
+    \item \textbf{Scoring Kualitas}: Penilaian kualitas konten
+\end{itemize}
+
+\subsection{Transformasi dbt}
+Sistem menggunakan dbt untuk transformasi data dengan struktur model berikut:
+
+\begin{lstlisting}[language=sql, caption=Struktur Model dbt]
+models/
+├── staging/           # Staging data mentah
+├── intermediate/      # Transformasi intermediate
+└── marts/
+    ├── analytics/     # Model analitik
+    ├── dimensions/    # Tabel dimensi
+    └── reporting/     # Model pelaporan
+\end{lstlisting}
+
+\section{Dashboard dan Visualisasi}
+
+\subsection{Fitur Dashboard}
+Dashboard real-time menyediakan visualisasi data COVID-19 yang komprehensif:
+
+\begin{itemize}
+    \item \textbf{Metric Utama}: Total mentions, jumlah harian, skor sentimen
+    \item \textbf{Chart Interaktif}: Line, bar, pie chart dengan update real-time
+    \item \textbf{Word Cloud}: Visualisasi frekuensi kata kunci
+    \item \textbf{Stream Real-time}: Feed data langsung
+    \item \textbf{Desain Responsif}: Kompatibel mobile dan desktop
+\end{itemize}
+
+\subsection{Komponen Dashboard}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw, minimum width=8cm, minimum height=1cm, align=center},
+    metric/.style={rectangle, draw, fill=green!20, minimum width=2cm, minimum height=1cm, align=center}
+]
+    % Header
+    \node[box, fill=blue!20] (header) {Dashboard COVID-19 Real-time};
+    
+    % Metrics Row
+    \node[metric, below of=header, xshift=-3cm] (m1) {Total\\Mentions};
+    \node[metric, below of=header, xshift=-1cm] (m2) {Mentions\\Hari Ini};
+    \node[metric, below of=header, xshift=1cm] (m3) {Rata-rata\\Sentimen};
+    \node[metric, below of=header, xshift=3cm] (m4) {Sumber\\Aktif};
+    
+    % Charts
+    \node[box, below of=m2, yshift=-1cm] (line) {Tren Mentions COVID-19 Harian (Line Chart)};
+    \node[box, below of=line, xshift=-2cm] (bar) {Distribusi Sumber (Bar Chart)};
+    \node[box, below of=line, xshift=2cm] (pie) {Distribusi Sentimen (Pie Chart)};
+    \node[box, below of=bar, yshift=-1cm] (word) {Kata Kunci Populer (Word Cloud)};
+    
+    % Stream
+    \node[box, below of=word, yshift=-1cm] (stream) {Stream Data Real-time};
+    
+\end{tikzpicture}
+\caption{Layout Dashboard}
+\label{fig:dashboard-layout}
+\end{figure}
+
+\section{Monitoring dan Operasi}
+
+\subsection{Monitoring Airflow}
+Sistem menyediakan monitoring komprehensif melalui Apache Airflow:
+
+\begin{itemize}
+    \item \textbf{Monitoring DAG}: Status pipeline real-time
+    \item \textbf{Log Task}: Log eksekusi detail
+    \item \textbf{Metric Performa}: Pelacakan waktu eksekusi
+    \item \textbf{Penanganan Error}: Mekanisme retry otomatis
+    \item \textbf{Alerting}: Notifikasi kegagalan
+\end{itemize}
+
+\subsection{Monitoring Kualitas Data}
+\begin{itemize}
+    \item \textbf{Validasi Otomatis}: Pemeriksaan kualitas data
+    \item \textbf{Metric Kualitas}: Kelengkapan, akurasi, konsistensi
+    \item \textbf{Pelaporan Error}: Log error detail
+    \item \textbf{Pelacakan Performa}: Monitoring waktu pemrosesan
+\end{itemize}
+
+\section{Performa dan Skalabilitas}
+
+\subsection{Optimasi Performa}
+\begin{itemize}
+    \item \textbf{Pemrosesan Paralel}: Eksekusi scraper bersamaan
+    \item \textbf{Penyimpanan Terdistribusi}: HDFS untuk data skala besar
+    \item \textbf{Indexing}: Optimasi query database
+    \item \textbf{Caching}: Caching data yang sering diakses
+    \item \textbf{Manajemen Sumber Daya}: Alokasi sumber daya berbasis YARN
+\end{itemize}
+
+\subsection{Fitur Skalabilitas}
+\begin{itemize}
+    \item \textbf{Skala Horizontal}: Deployment berbasis kontainer
+    \item \textbf{Load Balancing}: Pemrosesan terdistribusi
+    \item \textbf{Fault Tolerance}: Mekanisme failover otomatis
+    \item \textbf{Partisi Data}: Distribusi data yang efisien
+\end{itemize}
+
+\section{Deployment dan Konfigurasi}
+
+\subsection{Setup Lingkungan}
+Sistem memerlukan variabel lingkungan berikut:
+
+\begin{lstlisting}[language=bash, caption=Konfigurasi Lingkungan]
+# API Keys
+NEWSAPI_KEY=your_newsapi_key
+GNEWS_API_KEY=your_gnews_api_key
+YOUTUBE_API_KEY=your_youtube_api_key
+
+# Konfigurasi Database
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=risetdb
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin
+
+# Konfigurasi Timezone
+TZ=Asia/Jakarta
+\end{lstlisting}
+
+\subsection{Perintah Deployment}
+\begin{lstlisting}[language=bash, caption=Instruksi Deployment]
+# Menjalankan semua layanan
+docker-compose up -d
+
+# Menjalankan scraper secara manual
+cd backend/scrapers
+python main.py --mode run
+
+# Menjalankan transformasi dbt
+cd backend/dbt
+dbt run
+
+# Menjalankan dashboard
+cd frontend/dashboard
+python app.py
+\end{lstlisting}
+
+\section{Output dan Deliverables}
+
+\subsection{Output Utama}
+\begin{enumerate}
+    \item \textbf{Dashboard Real-time}: Visualisasi data COVID-19 interaktif
+    \item \textbf{Laporan Analitik}: Pelaporan dan wawasan otomatis
+    \item \textbf{Data Warehouse}: Data terstruktur untuk analisis
+    \item \textbf{API Endpoints}: Interface akses data
+    \item \textbf{Dashboard Monitoring}: Monitoring kesehatan sistem
+\end{enumerate}
+
+\subsection{Wawasan Data}
+Sistem menyediakan jenis wawasan berikut:
+\begin{itemize}
+    \item \textbf{Analisis Tren}: Tren mentions COVID-19 dari waktu ke waktu
+    \item \textbf{Analisis Sentimen}: Sentimen publik terhadap COVID-19
+    \item \textbf{Analisis Sumber}: Distribusi konten di berbagai sumber
+    \item \textbf{Analisis Kata Kunci}: Topik COVID-19 yang paling dibahas
+    \item \textbf{Analisis Geografis}: Distribusi konten regional
+\end{itemize}
+
+\section{Kesimpulan}
+
+Sistem Riset Big Data merepresentasikan solusi komprehensif untuk pengumpulan, pemrosesan, dan analisis data COVID-19. Sistem berhasil mengintegrasikan berbagai sumber data, mengimplementasikan pipeline pemrosesan data yang robust, dan menyediakan analitik real-time melalui dashboard interaktif.
+
+Pencapaian utama meliputi:
+\begin{itemize}
+    \item \textbf{Otomasi End-to-end}: Otomasi pipeline data lengkap
+    \item \textbf{Arsitektur Skalabel}: Sistem terdistribusi terkontainerisasi
+    \item \textbf{Pemrosesan Real-time}: Streaming dan analisis data langsung
+    \item \textbf{Jaminan Kualitas Data}: Validasi dan monitoring komprehensif
+    \item \textbf{Interface Ramah Pengguna}: Dashboard interaktif untuk eksplorasi data
+\end{itemize}
+
+Sistem mendemonstrasikan praktik terbaik big data modern dan menyediakan fondasi yang solid untuk riset dan pemantauan COVID-19. Arsitektur modular memungkinkan ekstensi dan modifikasi yang mudah untuk mengakomodasi sumber data baru dan persyaratan analisis.
+
+\section{Pengembangan Masa Depan}
+
+Area potensial untuk pengembangan masa depan meliputi:
+\begin{itemize}
+    \item \textbf{Integrasi Machine Learning}: Analitik prediktif lanjutan
+    \item \textbf{Alerting Real-time}: Sistem alert otomatis
+    \item \textbf{Pengembangan API}: RESTful APIs untuk akses eksternal
+    \item \textbf{Analitik Lanjutan}: Analisis konten berbasis deep learning
+    \item \textbf{Dukungan Multi-bahasa}: Pemrosesan konten internasional
+\end{itemize}
+
+\end{document} 

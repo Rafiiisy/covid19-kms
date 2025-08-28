@@ -15,6 +15,8 @@ export interface ETLState {
     instagram: any[] | null;
     indonesiaNews: any[] | null;
     summary: any | null;
+    sentimentDistribution: any | null;
+    wordFrequency: any | null;
   } | null;
 }
 
@@ -90,12 +92,14 @@ export const useETL = () => {
       console.log('🔄 Fetching database data...');
       
       // Fetch data from all sources concurrently
-      const [youtubeData, googleNewsData, instagramData, indonesiaNewsData, summaryData] = await Promise.all([
+      const [youtubeData, googleNewsData, instagramData, indonesiaNewsData, summaryData, sentimentDistributionData, wordFrequencyData] = await Promise.all([
         etlAPI.getYouTubeData(),
         etlAPI.getGoogleNewsData(),
         etlAPI.getInstagramData(),
         etlAPI.getIndonesiaNewsData(),
         etlAPI.getDataSummary(),
+        etlAPI.getSentimentDistribution(),
+        etlAPI.getWordFrequency(),
       ]);
 
       const databaseData = {
@@ -104,6 +108,8 @@ export const useETL = () => {
         instagram: instagramData.data || [],
         indonesiaNews: indonesiaNewsData.data || [],
         summary: summaryData.summary || {},
+        sentimentDistribution: sentimentDistributionData.distribution || {},
+        wordFrequency: wordFrequencyData.wordFrequency || {},
       };
 
       setState(prev => ({ ...prev, databaseData }));

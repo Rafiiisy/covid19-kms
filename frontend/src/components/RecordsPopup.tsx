@@ -162,9 +162,25 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
                       {comment.covid_relevance_score.toFixed(2)}
                     </span>
                   )}
-                  <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                    Comment
-                  </span>
+                  {comment.sentiment && (
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      comment.sentiment === 'positive' ? 'bg-green-100 text-green-800' :
+                      comment.sentiment === 'negative' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {comment.sentiment}
+                    </span>
+                  )}
+                  {comment.sentiment_score && (
+                    <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                      Score: {comment.sentiment_score.toFixed(2)}
+                    </span>
+                  )}
+                  {comment.sentiment_confidence && (
+                    <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+                      Conf: {(comment.sentiment_confidence * 100).toFixed(0)}%
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -196,6 +212,16 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-medium text-gray-900 line-clamp-2 text-left">
                   {article.title || 'Untitled Article'}
+                  {article.url && (
+                    <a 
+                      href={article.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </h4>
                 
                 {/* News-specific metadata */}
@@ -247,6 +273,16 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {article.sentiment}
+                    </span>
+                  )}
+                  {article.sentiment_score && (
+                    <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                      Score: {article.sentiment_score.toFixed(2)}
+                    </span>
+                  )}
+                  {article.sentiment_confidence && (
+                    <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+                      Conf: {(article.sentiment_confidence * 100).toFixed(0)}%
                     </span>
                   )}
                 </div>
@@ -335,6 +371,16 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
                       {post.sentiment}
                     </span>
                   )}
+                  {post.sentiment_score && (
+                    <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                      Score: {post.sentiment_score.toFixed(2)}
+                    </span>
+                  )}
+                  {post.sentiment_confidence && (
+                    <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+                      Conf: {(post.sentiment_confidence * 100).toFixed(0)}%
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -366,6 +412,16 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-medium text-gray-900 line-clamp-2 text-left">
                   {news.title || 'Untitled News'}
+                  {news.url && (
+                    <a 
+                      href={news.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </h4>
                 
                 {/* Indonesia News-specific metadata */}
@@ -415,6 +471,16 @@ export const RecordsPopup: React.FC<RecordsPopupProps> = ({ isOpen, onClose, dat
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {news.sentiment}
+                    </span>
+                  )}
+                  {news.sentiment_score && (
+                    <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                      Score: {news.sentiment_score.toFixed(2)}
+                    </span>
+                  )}
+                  {news.sentiment_confidence && (
+                    <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+                      Conf: {(news.sentiment_confidence * 100).toFixed(0)}%
                     </span>
                   )}
                 </div>

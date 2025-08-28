@@ -2,6 +2,7 @@ import React from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { ETLResult } from '../services/api';
+import { WordCloud } from './WordCloud';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -13,6 +14,8 @@ interface DataChartsProps {
     instagram: any[] | null;
     indonesiaNews: any[] | null;
     summary: any | null;
+    sentimentDistribution: any | null;
+    wordFrequency: any | null;
   } | null;
 }
 
@@ -63,34 +66,44 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult, databaseData 
     ],
   };
 
-  // Prepare data for bar chart (pipeline stages performance)
-  const pipelineData = {
+  // Prepare data for stacked bar chart (sentiment distribution)
+  const sentimentData = {
     labels: ['YouTube', 'Google News', 'Instagram', 'Indonesia News'],
     datasets: [
       {
-        label: 'Records Processed',
-        data: useDatabaseData ? [
-          databaseData.youtube?.length || 0,
-          databaseData.googleNews?.length || 0,
-          databaseData.instagram?.length || 0,
-          databaseData.indonesiaNews?.length || 0,
-        ] : [
-          etlResult?.extraction?.sources ? Object.keys(etlResult.extraction.sources).length : 0,
-          (etlResult?.transformation?.YouTube?.length || 0) + (etlResult?.transformation?.News?.length || 0),
-          etlResult?.loading?.records_count || 0,
-        ],
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.8)',
-          'rgba(255, 99, 132, 0.8)',
-          'rgba(54, 162, 235, 0.8)',
-          'rgba(153, 102, 255, 0.8)',
-        ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(153, 102, 255, 1)',
-        ],
+        label: 'Positive',
+        data: useDatabaseData && databaseData.sentimentDistribution ? [
+          databaseData.sentimentDistribution.sources?.youtube?.positive || 0,
+          databaseData.sentimentDistribution.sources?.google_news?.positive || 0,
+          databaseData.sentimentDistribution.sources?.instagram?.positive || 0,
+          databaseData.sentimentDistribution.sources?.indonesia_news?.positive || 0,
+        ] : [0, 0, 0, 0],
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        borderColor: 'rgba(34, 197, 94, 1)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Negative',
+        data: useDatabaseData && databaseData.sentimentDistribution ? [
+          databaseData.sentimentDistribution.sources?.youtube?.negative || 0,
+          databaseData.sentimentDistribution.sources?.google_news?.negative || 0,
+          databaseData.sentimentDistribution.sources?.instagram?.negative || 0,
+          databaseData.sentimentDistribution.sources?.indonesia_news?.negative || 0,
+        ] : [0, 0, 0, 0],
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(239, 68, 68, 1)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Neutral',
+        data: useDatabaseData && databaseData.sentimentDistribution ? [
+          databaseData.sentimentDistribution.sources?.youtube?.neutral || 0,
+          databaseData.sentimentDistribution.sources?.google_news?.neutral || 0,
+          databaseData.sentimentDistribution.sources?.instagram?.neutral || 0,
+          databaseData.sentimentDistribution.sources?.indonesia_news?.neutral || 0,
+        ] : [0, 0, 0, 0],
+        backgroundColor: 'rgba(156, 163, 175, 0.8)',
+        borderColor: 'rgba(156, 163, 175, 1)',
         borderWidth: 1,
       },
     ],
@@ -106,17 +119,21 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult, databaseData 
     },
   };
 
-  const barChartOptions = {
+  const sentimentChartOptions = {
     ...chartOptions,
     plugins: {
       ...chartOptions.plugins,
       title: {
         display: true,
-        text: 'Data Source Distribution',
+        text: 'Sentiment Distribution by Source',
       },
     },
     scales: {
+      x: {
+        stacked: true,
+      },
       y: {
+        stacked: true,
         beginAtZero: true,
       },
     },
@@ -132,67 +149,46 @@ export const DataCharts: React.FC<DataChartsProps> = ({ etlResult, databaseData 
         </div>
       </div>
 
-      {/* Pipeline Performance */}
+      {/* Sentiment Distribution */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pipeline Stages Performance</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sentiment Distribution by Source</h3>
         <div className="h-64">
-          <Bar data={pipelineData} options={barChartOptions} />
+          <Bar data={sentimentData} options={sentimentChartOptions} />
         </div>
+        {useDatabaseData && databaseData.sentimentDistribution && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-green-600 font-semibold">
+                {databaseData.sentimentDistribution.totals?.positive || 0}
+              </div>
+              <div className="text-gray-600">Total Positive</div>
+            </div>
+            <div className="text-center">
+              <div className="text-red-600 font-semibold">
+                {databaseData.sentimentDistribution.totals?.negative || 0}
+              </div>
+              <div className="text-gray-600">Total Negative</div>
+            </div>
+            <div className="text-center">
+              <div className="text-gray-600 font-semibold">
+                {databaseData.sentimentDistribution.totals?.neutral || 0}
+              </div>
+              <div className="text-gray-600">Total Neutral</div>
+            </div>
+            <div className="text-center">
+              <div className="text-blue-600 font-semibold">
+                {databaseData.sentimentDistribution.totals?.total || 0}
+              </div>
+              <div className="text-gray-600">Total Records</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Pipeline Summary */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pipeline Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-700 mb-2">Execution Details</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Status:</span>
-                <span className={`font-medium ${
-                  etlResult?.status === 'success' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {etlResult?.status || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">{etlResult?.pipeline_duration || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Timestamp:</span>
-                <span className="font-medium">{etlResult?.timestamp ? new Date(etlResult.timestamp).toLocaleString() : 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-700 mb-2">Data Summary</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">YouTube Videos:</span>
-                <span className="font-medium">{etlResult?.transformation?.YouTube?.length || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">News Articles:</span>
-                <span className="font-medium">{etlResult?.transformation?.News?.length || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Records:</span>
-                <span className="font-medium">{etlResult?.loading?.records_count || 0}</span>
-              </div>
-              {etlResult?.transformation?.Summary?.AverageRelevance && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Avg Relevance:</span>
-                  <span className="font-medium">
-                    {etlResult.transformation.Summary.AverageRelevance.toFixed(2)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+
+
+      {/* Word Cloud */}
+      <WordCloud wordFrequency={databaseData?.wordFrequency} />
     </div>
   );
 };
