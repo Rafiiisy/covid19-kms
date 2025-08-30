@@ -42,9 +42,6 @@ COPY --from=builder /app/main ./main
 # Copy environment configuration files
 COPY --from=builder /app/internal/config/env.example ./env.example
 
-# Copy .env file if it exists (for Railway)
-COPY --from=builder /app/.env ./.env
-
 # Set default environment variables
 ENV HOST=0.0.0.0
 ENV PORT=8000
