@@ -42,10 +42,24 @@ COPY --from=builder /app/main ./main
 # Copy environment configuration files
 COPY --from=builder /app/internal/config/env.example ./env.example
 
+# Copy .env file if it exists (for Railway)
+COPY --from=builder /app/.env ./.env
+
 # Set default environment variables
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV ENV=production
+
+# Debug: Print environment variables during build
+RUN echo "🔍 Debug: Environment Variables" && \
+    echo "HOST: $HOST" && \
+    echo "PORT: $PORT" && \
+    echo "ENV: $ENV" && \
+    echo "DATABASE_HOST: $DATABASE_HOST" && \
+    echo "DATABASE_PORT: $DATABASE_PORT" && \
+    echo "DATABASE_NAME: $DATABASE_NAME" && \
+    echo "DATABASE_USER: $DATABASE_USER" && \
+    echo "DATABASE_SSL_MODE: $DATABASE_SSL_MODE"
 
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app
