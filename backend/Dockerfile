@@ -37,10 +37,15 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/main .
+COPY --from=builder /app/main ./main
 
 # Copy environment configuration files
 COPY --from=builder /app/internal/config/env.example ./env.example
+
+# Set default environment variables
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV ENV=production
 
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app
@@ -60,5 +65,8 @@ LABEL maintainer="COVID-19 KMS Team"
 LABEL description="COVID-19 Knowledge Management System Backend API"
 LABEL version="1.0"
 
-# Run the application
-CMD ["./main"]
+# Run the application (Railway will use this)
+CMD ["/app/main"]
+
+# Alternative: Use ENTRYPOINT for more explicit control
+# ENTRYPOINT ["./main"]
