@@ -26,6 +26,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api/ma
 # Final stage
 FROM alpine:latest
 
+# Accept Railway environment variables as build arguments
+ARG DATABASE_HOST
+ARG DATABASE_PORT
+ARG DATABASE_NAME
+ARG DATABASE_USER
+ARG DATABASE_SSL_MODE
+
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata wget
 
@@ -42,10 +49,15 @@ COPY --from=builder /app/main ./main
 # Copy environment configuration files
 COPY --from=builder /app/internal/config/env.example ./env.example
 
-# Set default environment variables
+# Set environment variables from build arguments
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV ENV=production
+ENV DATABASE_HOST=$DATABASE_HOST
+ENV DATABASE_PORT=$DATABASE_PORT
+ENV DATABASE_NAME=$DATABASE_NAME
+ENV DATABASE_USER=$DATABASE_USER
+ENV DATABASE_SSL_MODE=$DATABASE_SSL_MODE
 
 # Debug: Print environment variables during build
 RUN echo "🔍 Debug: Environment Variables" && \
